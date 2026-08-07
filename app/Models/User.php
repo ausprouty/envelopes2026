@@ -47,6 +47,11 @@ class User extends Authenticatable
         ];
     }
 
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
     public function households(): BelongsToMany
     {
         return $this->belongsToMany(Household::class)
