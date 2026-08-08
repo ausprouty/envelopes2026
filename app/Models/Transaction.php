@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Category;
 
 
 class Transaction extends Model
@@ -11,6 +12,7 @@ class Transaction extends Model
     protected $fillable = [
         'household_id',
         'financial_account_id',
+        'category_id',
         'transaction_date',
         'description',
         'payee',
@@ -37,5 +39,10 @@ class Transaction extends Model
     public function financialAccount(): BelongsTo
     {
         return $this->belongsTo(FinancialAccount::class);
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
     }
 }

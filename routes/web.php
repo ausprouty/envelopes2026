@@ -3,6 +3,7 @@
 use App\Http\Controllers\FinancialAccountController;
 use App\Http\Controllers\FinancialTransactionController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\CategoryController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
@@ -55,6 +56,33 @@ Route::middleware(['auth', 'verified'])
             '/households/{household}/transactions',
             [FinancialTransactionController::class, 'index']
         )->name('households.transactions.index');
+
+        // Category routes
+        Route::get(
+            '/households/{household}/categories',
+            [CategoryController::class, 'index']
+        )->name('households.categories.index');
+
+        Route::get(
+            '/households/{household}/categories/create',
+            [CategoryController::class, 'create']
+        )->name('households.categories.create');
+
+        Route::post(
+            '/households/{household}/categories',
+            [CategoryController::class, 'store']
+        )->name('households.categories.store');
+
+        Route::get(
+            '/households/{household}/categories/{category}/edit',
+            [CategoryController::class, 'edit']
+        )->name('households.categories.edit');
+
+        Route::put(
+            '/households/{household}/categories/{category}',
+            [CategoryController::class, 'update']
+        )->name('households.categories.update');
     });
+
 
 require __DIR__ . '/settings.php';

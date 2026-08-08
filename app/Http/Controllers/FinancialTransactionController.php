@@ -20,7 +20,10 @@ class FinancialTransactionController extends Controller
 
         $transactions = Transaction::query()
             ->where('household_id', $household->id)
-            ->with('financialAccount')
+            ->with([
+                'financialAccount',
+                'category',
+            ])
             ->orderByDesc('transaction_date')
             ->orderByDesc('id')
             ->get();
@@ -48,4 +51,3 @@ class FinancialTransactionController extends Controller
         abort_unless($belongsToHousehold, 403);
     }
 }
-

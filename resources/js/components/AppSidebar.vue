@@ -4,7 +4,10 @@ import {
     BookOpen,
     FolderGit2,
     LayoutGrid,
+    ReceiptText,
+    Tags,
     Users,
+    WalletCards,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
@@ -23,8 +26,21 @@ import {
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
+type PageProps = {
+    household?: {
+        id: number;
+    };
 
-const page = usePage();
+    auth?: {
+        user?: {
+            households?: {
+                id: number;
+            }[];
+        };
+    };
+};
+
+const page = usePage<PageProps>();
 
 const isAdmin = computed(() => {
     const auth = page.props.auth as {
@@ -36,14 +52,42 @@ const isAdmin = computed(() => {
     return auth?.user?.role === 'admin';
 });
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-];
 
+const mainNavItems = computed<NavItem[]>(() => {
+    const householdId =
+        page.props.household?.id ??
+        page.props.auth?.user?.households?.[0]?.id;
+
+    const items: NavItem[] = [
+        {
+            title: 'Dashboard',
+            href: dashboard(),
+            icon: LayoutGrid,
+        },
+    ];
+
+    if (householdId) {
+        items.push(
+            {
+                title: 'Accounts',
+                href: `/households/${householdId}/accounts`,
+                icon: WalletCards,
+            },
+            {
+                title: 'Transactions',
+                href: `/households/${householdId}/transactions`,
+                icon: ReceiptText,
+            },
+            {
+                title: 'Categories',
+                href: `/households/${householdId}/categories`,
+                icon: Tags,
+            },
+        );
+    }
+
+    return items;
+});
 const adminNavItems: NavItem[] = [
     {
         title: 'Users',
@@ -82,17 +126,11 @@ const adminNavItems: NavItem[] = [
         </SidebarContent>
 
         <SidebarFooter>
-            <div
-                v-if="isAdmin"
-                class="px-2 pb-1 text-xs font-medium text-muted-foreground"
-            >
+            <div v-if="isAdmin" class="px-2 pb-1 text-xs font-medium text-muted-foreground">
                 Administration
             </div>
 
-            <NavFooter
-                v-if="isAdmin"
-                :items="adminNavItems"
-            />
+            <NavFooter v-if="isAdmin" :items="adminNavItems" />
 
             <NavUser />
         </SidebarFooter>
