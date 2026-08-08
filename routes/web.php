@@ -1,9 +1,10 @@
 <?php
 
-use App\Http\Controllers\FinancialAccountController;
-use App\Http\Controllers\FinancialTransactionController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\FinancialAccountController;
+use App\Http\Controllers\FinancialTransactionController;
+use App\Http\Controllers\TransactionImportController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
@@ -17,72 +18,93 @@ Route::middleware(['auth', 'admin'])
     ->name('admin.')
     ->group(function () {
         // User management routes
-        Route::get('/users', [UserController::class, 'index'])
-            ->name('users.index');
-
-        Route::put('/users/{user}/household', [UserController::class, 'updateHousehold'])
-            ->name('users.household.update');
-    });
-
-Route::middleware(['auth', 'verified'])
-    ->group(function () {
         Route::get(
-            '/households/{household}/accounts',
-            [FinancialAccountController::class, 'index']
-        )->name('households.accounts.index');
-
-        Route::get(
-            '/households/{household}/accounts/create',
-            [FinancialAccountController::class, 'create']
-        )->name('households.accounts.create');
-
-        Route::post(
-            '/households/{household}/accounts',
-            [FinancialAccountController::class, 'store']
-        )->name('households.accounts.store');
-
-        Route::get(
-            '/households/{household}/accounts/{financialAccount}/edit',
-            [FinancialAccountController::class, 'edit']
-        )->name('households.accounts.edit');
+            '/users',
+            [UserController::class, 'index']
+        )->name('users.index');
 
         Route::put(
-            '/households/{household}/accounts/{financialAccount}',
-            [FinancialAccountController::class, 'update']
-        )->name('households.accounts.update');
+            '/users/{user}/household',
+            [UserController::class, 'updateHousehold']
+        )->name('users.household.update');
+    });
 
-        // Financial transactions routes
+Route::middleware([
+    'auth',
+    'verified',
+    'household.access',
+])
+    ->prefix('households/{household}')
+    ->name('households.')
+    ->group(function () {
+        // Account routes
         Route::get(
-            '/households/{household}/transactions',
-            [FinancialTransactionController::class, 'index']
-        )->name('households.transactions.index');
+            '/accounts',
+            [FinancialAccountController::class, 'index']
+        )->name('accounts.index');
+
+        Route::get(
+            '/accounts/create',
+            [FinancialAccountController::class, 'create']
+        )->name('accounts.create');
+
+        Route::post(
+            '/accounts',
+            [FinancialAccountController::class, 'store']
+        )->name('accounts.store');
+
+        Route::get(
+            '/accounts/{financialAccount}/edit',
+            [FinancialAccountController::class, 'edit']
+        )->name('accounts.edit');
+
+        Route::put(
+            '/accounts/{financialAccount}',
+            [FinancialAccountController::class, 'update']
+        )->name('accounts.update');
 
         // Category routes
         Route::get(
-            '/households/{household}/categories',
+            '/categories',
             [CategoryController::class, 'index']
-        )->name('households.categories.index');
+        )->name('categories.index');
 
         Route::get(
-            '/households/{household}/categories/create',
+            '/categories/create',
             [CategoryController::class, 'create']
-        )->name('households.categories.create');
+        )->name('categories.create');
 
         Route::post(
-            '/households/{household}/categories',
+            '/categories',
             [CategoryController::class, 'store']
-        )->name('households.categories.store');
+        )->name('categories.store');
 
         Route::get(
-            '/households/{household}/categories/{category}/edit',
+            '/categories/{category}/edit',
             [CategoryController::class, 'edit']
-        )->name('households.categories.edit');
+        )->name('categories.edit');
 
         Route::put(
-            '/households/{household}/categories/{category}',
+            '/categories/{category}',
             [CategoryController::class, 'update']
-        )->name('households.categories.update');
-    });
+        )->name('categories.update');
 
+        // Financial transaction routes
+        Route::get(
+            '/transactions',
+            [FinancialTransactionController::class, 'index']
+        )->name('transactions.index');
+
+        // Transaction import routes
+        Route::get(
+            '/transactions/import',
+            [TransactionImportController::class, 'create']
+        )->name('transactions.import');
+
+        Route::post(
+            '/transactions/import/preview',
+            [TransactionImportController::class, 'preview']
+        )->name('transactions.import.preview');
+    });
 
 require __DIR__ . '/settings.php';

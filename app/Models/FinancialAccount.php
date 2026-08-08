@@ -22,6 +22,7 @@ class FinancialAccount extends Model
         'is_active',
         'closed_at',
         'display_order',
+        'transaction_import_profile_id'
     ];
 
     protected function casts(): array
@@ -40,5 +41,9 @@ class FinancialAccount extends Model
     public function household(): BelongsTo
     {
         return $this->belongsTo(Household::class);
+    }
+    public function transactionImportProfile(): BelongsTo
+    {
+        return $this->belongsTo(TransactionImportProfile::class);
     }
 }

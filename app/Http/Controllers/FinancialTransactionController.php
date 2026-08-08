@@ -16,7 +16,7 @@ class FinancialTransactionController extends Controller
     ): Response {
         // We'll use the same household authorization pattern
         // as the accounts controller.
-        $this->authorizeHousehold($request, $household);
+
 
         $transactions = Transaction::query()
             ->where('household_id', $household->id)
@@ -34,20 +34,5 @@ class FinancialTransactionController extends Controller
         ]);
     }
 
-    private function authorizeHousehold(
-        Request $request,
-        Household $household
-    ): void {
-        $user = $request->user();
-
-        if ($user->isAdmin()) {
-            return;
-        }
-
-        $belongsToHousehold = $user->households()
-            ->whereKey($household->id)
-            ->exists();
-
-        abort_unless($belongsToHousehold, 403);
-    }
+    
 }

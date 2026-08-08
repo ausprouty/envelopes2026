@@ -16,7 +16,7 @@ class CategoryController extends Controller
         Request $request,
         Household $household
     ): Response {
-        $this->authorizeHousehold($request, $household);
+
 
         return Inertia::render('households/categories/Index', [
             'household' => $household,
@@ -32,7 +32,7 @@ class CategoryController extends Controller
         Request $request,
         Household $household
     ): Response {
-        $this->authorizeHousehold($request, $household);
+
 
         return Inertia::render('households/categories/Edit', [
             'household' => $household,
@@ -45,7 +45,7 @@ class CategoryController extends Controller
         Request $request,
         Household $household
     ): RedirectResponse {
-        $this->authorizeHousehold($request, $household);
+
 
         $validated = $this->validateCategory($request, $household);
         //dd($validated);
@@ -64,7 +64,7 @@ class CategoryController extends Controller
         Household $household,
         Category $category
     ): Response {
-        $this->authorizeHousehold($request, $household);
+
         $this->authorizeCategory($household, $category);
 
         return Inertia::render('households/categories/Edit', [
@@ -82,7 +82,7 @@ class CategoryController extends Controller
         Household $household,
         Category $category
     ): RedirectResponse {
-        $this->authorizeHousehold($request, $household);
+
         $this->authorizeCategory($household, $category);
 
         $validated = $this->validateCategory(
@@ -162,20 +162,5 @@ class CategoryController extends Controller
         );
     }
 
-    private function authorizeHousehold(
-        Request $request,
-        Household $household
-    ): void {
-        $user = $request->user();
-
-        if ($user->isAdmin()) {
-            return;
-        }
-
-        $belongsToHousehold = $user->households()
-            ->whereKey($household->id)
-            ->exists();
-
-        abort_unless($belongsToHousehold, 403);
-    }
+    
 }

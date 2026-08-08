@@ -53,7 +53,7 @@ class FinancialAccountController extends Controller
         Request $request,
         Household $household
     ): Response {
-        $this->authorizeHousehold($request, $household);
+
 
         return Inertia::render('households/accounts/Edit', [
             'household' => $household,
@@ -65,7 +65,7 @@ class FinancialAccountController extends Controller
         Request $request,
         Household $household
     ): RedirectResponse {
-        $this->authorizeHousehold($request, $household);
+
 
         $validated = $this->validateAccount($request);
 
@@ -100,7 +100,7 @@ class FinancialAccountController extends Controller
         Household $household,
         FinancialAccount $financialAccount
     ): RedirectResponse {
-        $this->authorizeHousehold($request, $household);
+
 
         abort_unless(
             $financialAccount->household_id === $household->id,
@@ -144,20 +144,5 @@ class FinancialAccountController extends Controller
         ]);
     }
 
-    private function authorizeHousehold(
-        Request $request,
-        Household $household
-    ): void {
-        $user = $request->user();
-
-        if ($user->isAdmin()) {
-            return;
-        }
-
-        $belongsToHousehold = $user->households()
-            ->whereKey($household->id)
-            ->exists();
-
-        abort_unless($belongsToHousehold, 403);
-    }
+    
 }
