@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\FinancialAccountController;
+use App\Http\Controllers\FinancialTransactionController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -48,6 +49,12 @@ Route::middleware(['auth', 'verified'])
             '/households/{household}/accounts/{financialAccount}',
             [FinancialAccountController::class, 'update']
         )->name('households.accounts.update');
+
+        // Financial transactions routes
+        Route::get(
+            '/households/{household}/transactions',
+            [FinancialTransactionController::class, 'index']
+        )->name('households.transactions.index');
     });
 
-require __DIR__.'/settings.php';
+require __DIR__ . '/settings.php';
