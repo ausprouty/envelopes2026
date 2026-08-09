@@ -23,7 +23,6 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
 type PageProps = {
@@ -51,36 +50,47 @@ const isAdmin = computed(() => {
 
     return auth?.user?.role === 'admin';
 });
+const householdId = computed(
+    () =>
+        page.props.household?.id ??
+        page.props.auth?.user?.households?.[0]?.id,
+);
+const dashboardUrl = computed(() => {
+    const id = householdId.value;
 
+    return id
+        ? `/households/${id}/dashboard`
+        : '#';
+});
 
 const mainNavItems = computed<NavItem[]>(() => {
-    const householdId =
-        page.props.household?.id ??
-        page.props.auth?.user?.households?.[0]?.id;
+    const id = householdId.value;
 
     const items: NavItem[] = [
         {
             title: 'Dashboard',
-            href: dashboard(),
+            href: id
+                ? `/households/${id}/dashboard`
+                : '#',
             icon: LayoutGrid,
         },
     ];
 
-    if (householdId) {
+    if (id) {
         items.push(
             {
                 title: 'Accounts',
-                href: `/households/${householdId}/accounts`,
+                href: `/households/${id}/accounts`,
                 icon: WalletCards,
             },
             {
                 title: 'Transactions',
-                href: `/households/${householdId}/transactions`,
+                href: `/households/${id}/transactions`,
                 icon: ReceiptText,
             },
             {
                 title: 'Categories',
-                href: `/households/${householdId}/categories`,
+                href: `/households/${id}/categories`,
                 icon: Tags,
             },
         );
@@ -113,7 +123,7 @@ const adminNavItems: NavItem[] = [
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link :href="dashboard()">
+                        <Link :href="dashboardUrl">
                             <AppLogo />
                         </Link>
                     </SidebarMenuButton>

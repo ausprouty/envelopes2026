@@ -1,39 +1,44 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { dashboard, login, register } from '@/routes';
+import { usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { login } from '@/routes';
+
+
+type PageProps = {
+    auth: {
+        user?: {
+            households?: {
+                id: number;
+            }[];
+        };
+    };
+};
+
+const page = usePage<PageProps>();
+
+const dashboardUrl = computed(() => {
+    const householdId = page.props.auth.user?.households?.[0]?.id;
+
+    return householdId
+        ? `/households/${householdId}/dashboard`
+        : '#';
+});
 </script>
 
 <template>
+
     <Head title="Our Envelopes" />
 
     <div class="min-h-screen bg-[#f7f3ea] text-[#26352f]">
         <header class="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6 lg:px-8">
             <div class="flex items-center gap-3">
-                <div
-                    class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#44725d] text-white shadow-sm"
-                >
-                    <svg
-                        class="h-6 w-6"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                    >
-                        <path
-                            d="M3.75 6.75L12 12.75L20.25 6.75"
-                            stroke="currentColor"
-                            stroke-width="1.8"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        />
-                        <rect
-                            x="3.75"
-                            y="5.25"
-                            width="16.5"
-                            height="13.5"
-                            rx="2"
-                            stroke="currentColor"
-                            stroke-width="1.8"
-                        />
+                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#44725d] text-white shadow-sm">
+                    <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3.75 6.75L12 12.75L20.25 6.75" stroke="currentColor" stroke-width="1.8"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                        <rect x="3.75" y="5.25" width="16.5" height="13.5" rx="2" stroke="currentColor"
+                            stroke-width="1.8" />
                     </svg>
                 </div>
 
@@ -48,19 +53,14 @@ import { dashboard, login, register } from '@/routes';
             </div>
 
             <nav class="flex items-center gap-3">
-                <Link
-                    v-if="$page.props.auth.user"
-                    :href="dashboard()"
-                    class="rounded-lg bg-[#44725d] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#365d4b]"
-                >
+                <Link v-if="$page.props.auth.user" :href="dashboardUrl"
+                    class="rounded-lg bg-[#44725d] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#365d4b]">
                     Go to dashboard
                 </Link>
 
                 <template v-else>
-                    <Link
-                        :href="login()"
-                        class="rounded-lg px-4 py-2.5 text-sm  text-white font-medium text-[#365d4b]  bg-[#44725d] transition hover:bg-green-500/70"
-                    >
+                    <Link :href="login()"
+                        class="rounded-lg px-4 py-2.5 text-sm  text-white font-medium text-[#365d4b]  bg-[#44725d] transition hover:bg-green-500/70">
                         Log in
                     </Link>
 
@@ -73,14 +73,12 @@ import { dashboard, login, register } from '@/routes';
             <section class="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
                 <div>
                     <div
-                        class="mb-5 inline-flex items-center rounded-full bg-[#e5eee8] px-4 py-2 text-sm font-medium text-[#44725d]"
-                    >
+                        class="mb-5 inline-flex items-center rounded-full bg-[#e5eee8] px-4 py-2 text-sm font-medium text-[#44725d]">
                         A clearer way to manage everyday money
                     </div>
 
                     <h1
-                        class="max-w-xl text-4xl font-semibold leading-tight tracking-tight text-[#223029] sm:text-5xl lg:text-6xl"
-                    >
+                        class="max-w-xl text-4xl font-semibold leading-tight tracking-tight text-[#223029] sm:text-5xl lg:text-6xl">
                         Plan your money together,
                         <span class="text-[#44725d]">one envelope at a time.</span>
                     </h1>
@@ -91,19 +89,14 @@ import { dashboard, login, register } from '@/routes';
                     </p>
 
                     <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-                        <Link
-                            v-if="$page.props.auth.user"
-                            :href="dashboard()"
-                            class="inline-flex items-center justify-center rounded-xl bg-[#44725d] px-6 py-3.5 text-base font-semibold text-white shadow-md transition hover:bg-[#365d4b]"
-                        >
-                            Open your envelopes
+                        <Link v-if="$page.props.auth.user" :href="dashboardUrl"
+                            class="rounded-lg bg-[#44725d] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#365d4b]">
+                            Go to dashboard
                         </Link>
 
                         <template v-else>
-                            <Link
-                                :href="login()"
-                                class="inline-flex items-center justify-center rounded-xl bg-[#44725d] px-6 py-3.5 text-base font-semibold text-white shadow-md transition hover:bg-green-500/70"
-                            >
+                            <Link :href="login()"
+                                class="inline-flex items-center justify-center rounded-xl bg-[#44725d] px-6 py-3.5 text-base font-semibold text-white shadow-md transition hover:bg-green-500/70">
                                 Log in
                             </Link>
 
@@ -114,8 +107,7 @@ import { dashboard, login, register } from '@/routes';
                     <div class="mt-9 flex flex-wrap gap-x-6 gap-y-3 text-sm text-[#68766f]">
                         <div class="flex items-center gap-2">
                             <span
-                                class="flex h-5 w-5 items-center justify-center rounded-full bg-[#dbe9e0] text-[#44725d]"
-                            >
+                                class="flex h-5 w-5 items-center justify-center rounded-full bg-[#dbe9e0] text-[#44725d]">
                                 ✓
                             </span>
                             Easy to understand
@@ -123,8 +115,7 @@ import { dashboard, login, register } from '@/routes';
 
                         <div class="flex items-center gap-2">
                             <span
-                                class="flex h-5 w-5 items-center justify-center rounded-full bg-[#dbe9e0] text-[#44725d]"
-                            >
+                                class="flex h-5 w-5 items-center justify-center rounded-full bg-[#dbe9e0] text-[#44725d]">
                                 ✓
                             </span>
                             Private household records
@@ -132,8 +123,7 @@ import { dashboard, login, register } from '@/routes';
 
                         <div class="flex items-center gap-2">
                             <span
-                                class="flex h-5 w-5 items-center justify-center rounded-full bg-[#dbe9e0] text-[#44725d]"
-                            >
+                                class="flex h-5 w-5 items-center justify-center rounded-full bg-[#dbe9e0] text-[#44725d]">
                                 ✓
                             </span>
                             Built for everyday life
@@ -142,16 +132,11 @@ import { dashboard, login, register } from '@/routes';
                 </div>
 
                 <div class="relative">
-                    <div
-                        class="absolute -left-5 top-8 h-40 w-40 rounded-full bg-[#dce9e1] blur-2xl"
-                    ></div>
-                    <div
-                        class="absolute -right-5 bottom-8 h-40 w-40 rounded-full bg-[#f0dca8] blur-2xl"
-                    ></div>
+                    <div class="absolute -left-5 top-8 h-40 w-40 rounded-full bg-[#dce9e1] blur-2xl"></div>
+                    <div class="absolute -right-5 bottom-8 h-40 w-40 rounded-full bg-[#f0dca8] blur-2xl"></div>
 
                     <div
-                        class="relative overflow-hidden rounded-[2rem] border border-white/70 bg-white/75 p-6 shadow-xl backdrop-blur sm:p-8"
-                    >
+                        class="relative overflow-hidden rounded-[2rem] border border-white/70 bg-white/75 p-6 shadow-xl backdrop-blur sm:p-8">
                         <div class="mb-7 flex items-center justify-between">
                             <div>
                                 <p class="text-sm text-[#77847d]">
@@ -162,22 +147,17 @@ import { dashboard, login, register } from '@/routes';
                                 </p>
                             </div>
 
-                            <div
-                                class="rounded-full bg-[#e5eee8] px-3 py-1 text-sm font-medium text-[#44725d]"
-                            >
+                            <div class="rounded-full bg-[#e5eee8] px-3 py-1 text-sm font-medium text-[#44725d]">
                                 On track
                             </div>
                         </div>
 
                         <div class="space-y-4">
-                            <div
-                                class="rounded-2xl border border-[#e3e8e4] bg-[#fffdf8] p-5"
-                            >
+                            <div class="rounded-2xl border border-[#e3e8e4] bg-[#fffdf8] p-5">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center gap-3">
                                         <div
-                                            class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e7efe9] text-xl"
-                                        >
+                                            class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e7efe9] text-xl">
                                             🏠
                                         </div>
                                         <div>
@@ -191,14 +171,11 @@ import { dashboard, login, register } from '@/routes';
                                 </div>
                             </div>
 
-                            <div
-                                class="rounded-2xl border border-[#e3e8e4] bg-[#fffdf8] p-5"
-                            >
+                            <div class="rounded-2xl border border-[#e3e8e4] bg-[#fffdf8] p-5">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center gap-3">
                                         <div
-                                            class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#f3e9ca] text-xl"
-                                        >
+                                            class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#f3e9ca] text-xl">
                                             🛒
                                         </div>
                                         <div>
@@ -212,14 +189,11 @@ import { dashboard, login, register } from '@/routes';
                                 </div>
                             </div>
 
-                            <div
-                                class="rounded-2xl border border-[#e3e8e4] bg-[#fffdf8] p-5"
-                            >
+                            <div class="rounded-2xl border border-[#e3e8e4] bg-[#fffdf8] p-5">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center gap-3">
                                         <div
-                                            class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e6edf4] text-xl"
-                                        >
+                                            class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e6edf4] text-xl">
                                             🚗
                                         </div>
                                         <div>
@@ -233,14 +207,11 @@ import { dashboard, login, register } from '@/routes';
                                 </div>
                             </div>
 
-                            <div
-                                class="rounded-2xl border border-[#e3e8e4] bg-[#fffdf8] p-5"
-                            >
+                            <div class="rounded-2xl border border-[#e3e8e4] bg-[#fffdf8] p-5">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center gap-3">
                                         <div
-                                            class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#f0e4e1] text-xl"
-                                        >
+                                            class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#f0e4e1] text-xl">
                                             ❤️
                                         </div>
                                         <div>
@@ -287,8 +258,7 @@ import { dashboard, login, register } from '@/routes';
 
         <footer class="border-t border-[#e2ddd2]">
             <div
-                class="mx-auto flex w-full max-w-6xl flex-col gap-2 px-6 py-6 text-sm text-[#77847d] sm:flex-row sm:items-center sm:justify-between lg:px-8"
-            >
+                class="mx-auto flex w-full max-w-6xl flex-col gap-2 px-6 py-6 text-sm text-[#77847d] sm:flex-row sm:items-center sm:justify-between lg:px-8">
                 <p>Our Envelopes</p>
                 <p>Simple, private household budgeting.</p>
             </div>

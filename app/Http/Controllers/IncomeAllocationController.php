@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Household;
 use App\Models\IncomeAllocation;
+use App\Models\IncomeAllocationDefault;
 use App\Models\IncomeAllocationLine;
 use App\Models\Transaction;
 use Illuminate\Http\RedirectResponse;
@@ -23,18 +24,40 @@ class IncomeAllocationController extends Controller
         $categories = Category::query()
             ->where('household_id', $household->id)
             ->where('is_active', true)
-            ->where('tracks_balance', true)
             ->where('code', '!=', 'income_pool')
+            ->where(function ($query) {
+                $query
+                    ->where('category_type', 'heading')
+                    ->orWhere('tracks_balance', true);
+            })
+            ->orderBy('display_order')
             ->orderBy('name')
             ->get()
             ->map(function (Category $category) use ($household) {
+                $isHeading = $category->category_type === 'heading';
+
+                $default = $isHeading
+                    ? null
+                    : IncomeAllocationDefault::query()
+                    ->where('household_id', $household->id)
+                    ->where('category_id', $category->id)
+                    ->first();
+
                 return [
                     'id' => $category->id,
                     'name' => $category->name,
-                    'current_balance' => $this->currentBalance(
-                        $household,
-                        $category
-                    ),
+                    'is_heading' => $isHeading,
+
+                    'current_balance' => $isHeading
+                        ? null
+                        : $this->currentBalance(
+                            $household,
+                            $category
+                        ),
+
+                    'normal_amount' => $default
+                        ? (float) $default->amount
+                        : 0,
                 ];
             });
 
@@ -54,7 +77,6 @@ class IncomeAllocationController extends Controller
         Request $request,
         Household $household
     ): RedirectResponse {
-
         $validated = $request->validate([
             'allocation_date' => [
                 'required',
@@ -90,18 +112,38 @@ class IncomeAllocationController extends Controller
                 'min:0',
             ],
         ]);
+
+        /*
+     * How much is actually being allocated
+     * in this allocation.
+     */
+        $allocatedTotal = collect($validated['lines'])
+            ->sum(
+                fn($line) => (float) $line['amount']
+            );
+
+        if ($allocatedTotal <= 0) {
+            throw ValidationException::withMessages([
+                'lines' => 'Enter at least one amount to allocate.',
+            ]);
+        }
+
+        /*
+     * How much is currently available
+     * in the Income Pool.
+     */
         $availableToAllocate = $this->availableToAllocate(
             $household
         );
 
-        if (
-            abs(
-                (float) $validated['amount']
-                    - $availableToAllocate
-            ) > 0.005
-        ) {
+        /*
+     * Partial allocations are allowed.
+     * We only prevent allocating MORE
+     * than the Income Pool contains.
+     */
+        if ($allocatedTotal > $availableToAllocate + 0.005) {
             throw ValidationException::withMessages([
-                'amount' => 'The amount available has changed. Please reload the allocation page.',
+                'lines' => 'You cannot allocate more than is available in the Income Pool.',
             ]);
         }
 
@@ -111,6 +153,7 @@ class IncomeAllocationController extends Controller
         $validCategoryCount = Category::query()
             ->where('household_id', $household->id)
             ->where('is_active', true)
+            ->where('tracks_balance', true)
             ->whereIn('id', $categoryIds)
             ->count();
 
@@ -120,23 +163,15 @@ class IncomeAllocationController extends Controller
             ]);
         }
 
-        $allocatedTotal = collect($validated['lines'])
-            ->sum(fn($line) => (float) $line['amount']);
-
-        if (abs($allocatedTotal - (float) $validated['amount']) > 0.005) {
-            throw ValidationException::withMessages([
-                'lines' => 'The allocation must equal the amount available.',
-            ]);
-        }
-
         DB::transaction(function () use (
             $validated,
-            $household
+            $household,
+            $allocatedTotal
         ) {
             $allocation = IncomeAllocation::create([
                 'household_id' => $household->id,
                 'allocation_date' => $validated['allocation_date'],
-                'amount' => $validated['amount'],
+                'amount' => $allocatedTotal,
                 'notes' => $validated['notes'] ?? null,
             ]);
 
@@ -147,6 +182,8 @@ class IncomeAllocationController extends Controller
 
                 $category = Category::query()
                     ->where('household_id', $household->id)
+                    ->where('is_active', true)
+                    ->where('tracks_balance', true)
                     ->findOrFail($line['category_id']);
 
                 $allocation->lines()->create([
@@ -162,7 +199,7 @@ class IncomeAllocationController extends Controller
 
         return redirect()
             ->route(
-                'households.transactions.index',
+                'households.dashboard',
                 $household
             )
             ->with(
@@ -214,5 +251,52 @@ class IncomeAllocationController extends Controller
 
         return (float) $incomeReceived
             - (float) $alreadyAllocated;
+    }
+
+    public function saveDefaults(
+        Request $request,
+        Household $household
+    ): RedirectResponse {
+        $validated = $request->validate([
+            'lines' => [
+                'required',
+                'array',
+            ],
+
+            'lines.*.category_id' => [
+                'required',
+                'integer',
+                'distinct',
+            ],
+
+            'lines.*.amount' => [
+                'required',
+                'numeric',
+                'min:0',
+            ],
+        ]);
+
+        foreach ($validated['lines'] as $line) {
+            $category = Category::query()
+                ->where('household_id', $household->id)
+                ->where('is_active', true)
+                ->where('tracks_balance', true)
+                ->findOrFail($line['category_id']);
+
+            IncomeAllocationDefault::updateOrCreate(
+                [
+                    'household_id' => $household->id,
+                    'category_id' => $category->id,
+                ],
+                [
+                    'amount' => $line['amount'],
+                ]
+            );
+        }
+
+        return back()->with(
+            'success',
+            'Normal allocation saved.'
+        );
     }
 }

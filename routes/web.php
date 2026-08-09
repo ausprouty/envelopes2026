@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FinancialAccountController;
 use App\Http\Controllers\FinancialTransactionController;
 use App\Http\Controllers\IncomeAllocationController;
@@ -10,9 +11,6 @@ use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
-});
 
 Route::middleware(['auth', 'admin'])
     ->prefix('admin')
@@ -91,14 +89,24 @@ Route::middleware([
         )->name('categories.update');
 
         Route::get(
-            '/income-allocations/create',
-            [IncomeAllocationController::class, 'create']
-        )->name('income-allocations.create');
+            '/dashboard',
+            [DashboardController::class, 'index']
+        )->name('dashboard');
 
         Route::post(
             '/income-allocations',
             [IncomeAllocationController::class, 'store']
         )->name('income-allocations.store');
+
+        Route::get(
+            '/income-allocations/create',
+            [IncomeAllocationController::class, 'create']
+        )->name('income-allocations.create');
+
+        Route::post(
+            '/income-allocations/defaults',
+            [IncomeAllocationController::class, 'saveDefaults']
+        )->name('income-allocations.defaults.store');
 
         // Financial transaction routes
         Route::get(
@@ -126,6 +134,7 @@ Route::middleware([
             '/transactions/{transaction}/category',
             [FinancialTransactionController::class, 'updateCategory']
         )->name('transactions.category.update');
+
         Route::get(
             '/transactions/review',
             [FinancialTransactionController::class, 'review']
