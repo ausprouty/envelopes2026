@@ -27,6 +27,17 @@ class CategorySeeder extends Seeder
         $categories = [
             [
                 'household_id' => $bobHouseholdId,
+                'code' => 'income_pool',
+                'name' => 'Income Pool',
+                'parent_category_id' => null,
+                'category_type' => 'income',
+                'context' => 'household',
+                'tracks_balance' => true,
+                'is_active' => true,
+                'display_order' => 0,
+            ],
+            [
+                'household_id' => $bobHouseholdId,
                 'code' => 'P8-420',
                 'name' => 'Groceries',
                 'parent_category_id' => null,
@@ -46,6 +57,17 @@ class CategorySeeder extends Seeder
                 'tracks_balance' => false,
                 'is_active' => true,
                 'display_order' => 20,
+            ],
+            [
+                'household_id' => $bobHouseholdId,
+                'code' => 'income_pool',
+                'name' => 'Income Pool',
+                'parent_category_id' => null,
+                'category_type' => 'income',
+                'context' => 'household',
+                'tracks_balance' => true,
+                'is_active' => true,
+                'display_order' => 0,
             ],
             [
                 'household_id' => $ryanHouseholdId,

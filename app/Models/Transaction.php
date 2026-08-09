@@ -4,8 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Models\Category;
-
 
 class Transaction extends Model
 {
@@ -19,6 +17,9 @@ class Transaction extends Model
         'amount',
         'currency',
         'posted_date',
+        'external_id',
+        'import_source',
+        'import_hash',
         'comment',
     ];
 

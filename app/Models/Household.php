@@ -33,4 +33,14 @@ class Household extends Model
     {
         return $this->hasMany(FinancialAccount::class);
     }
+
+    public function incomeAllocations(): HasMany
+    {
+        return $this->hasMany(IncomeAllocation::class);
+    }
+
+    public function incomeAllocationDefaults(): HasMany
+    {
+        return $this->hasMany(IncomeAllocationDefault::class);
+    }
 }

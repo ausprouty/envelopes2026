@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\FinancialAccountController;
 use App\Http\Controllers\FinancialTransactionController;
+use App\Http\Controllers\IncomeAllocationController;
 use App\Http\Controllers\TransactionImportController;
 use Illuminate\Support\Facades\Route;
 
@@ -89,6 +90,16 @@ Route::middleware([
             [CategoryController::class, 'update']
         )->name('categories.update');
 
+        Route::get(
+            '/income-allocations/create',
+            [IncomeAllocationController::class, 'create']
+        )->name('income-allocations.create');
+
+        Route::post(
+            '/income-allocations',
+            [IncomeAllocationController::class, 'store']
+        )->name('income-allocations.store');
+
         // Financial transaction routes
         Route::get(
             '/transactions',
@@ -102,9 +113,23 @@ Route::middleware([
         )->name('transactions.import');
 
         Route::post(
-            '/transactions/import/preview',
-            [TransactionImportController::class, 'preview']
-        )->name('transactions.import.preview');
+            '/transactions/import/check-duplicates',
+            [TransactionImportController::class, 'checkDuplicates']
+        )->name('transactions.import.check-duplicates');
+
+        Route::post(
+            '/transactions/import/store',
+            [TransactionImportController::class, 'store']
+        )->name('transactions.import.store');
+
+        Route::put(
+            '/transactions/{transaction}/category',
+            [FinancialTransactionController::class, 'updateCategory']
+        )->name('transactions.category.update');
+        Route::get(
+            '/transactions/review',
+            [FinancialTransactionController::class, 'review']
+        )->name('transactions.review');
     });
 
 require __DIR__ . '/settings.php';

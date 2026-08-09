@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Category extends Model
 {
@@ -48,5 +49,13 @@ class Category extends Model
             Category::class,
             'parent_category_id'
         );
+    }
+    public function incomeAllocationLines(): HasMany
+    {
+        return $this->hasMany(IncomeAllocationLine::class);
+    }
+    public function incomeAllocationDefault(): HasOne
+    {
+        return $this->hasOne(IncomeAllocationDefault::class);
     }
 }

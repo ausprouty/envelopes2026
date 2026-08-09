@@ -1,10 +1,34 @@
-<script setup>
-defineProps({
-    household: Object,
-    transactions: Array,
-});
+<script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
+import { Upload, ClipboardCheck } from '@lucide/vue';
 
-function formatDate(date) {
+
+defineProps<{
+    household: {
+        id: number;
+        household_name: string;
+    };
+
+    transactions: Array<{
+        id: number;
+        transaction_date: string;
+        payee: string | null;
+        amount: number | string;
+        currency: string;
+
+        category: {
+            name: string;
+        } | null;
+
+        financial_account: {
+            account_name: string;
+        } | null;
+    }>;
+}>();
+
+
+
+function formatDate(date: string | null) {
     if (!date) {
         return '—';
     }
@@ -20,14 +44,35 @@ function formatDate(date) {
 
 <template>
     <div class="p-6">
-        <div class="mb-6">
-            <h1 class="text-2xl font-semibold text-gray-900">
-                Transactions
-            </h1>
+        <div class="mb-6 flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-semibold text-gray-900">
+                    Transactions
+                </h1>
 
-            <p class="mt-1 text-sm text-gray-600">
-                {{ household.household_name }}
-            </p>
+                <p class="mt-1 text-sm text-gray-600">
+                    {{ household.household_name }}
+                </p>
+            </div>
+
+            <div class="flex items-center gap-3">
+
+
+                <Link :href="`/households/${household.id}/transactions/import`"
+                    class="inline-flex items-center gap-2 rounded-md bg-[#477b67] px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+                    <Upload class="h-4 w-4" />
+                    Import
+                </Link>
+                <Link :href="`/households/${household.id}/transactions/review`"
+                    class="inline-flex items-center gap-2 rounded-md bg-[#477b67] px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+                    <ClipboardCheck class="h-4 w-4" />
+                    Review
+                </Link>
+                <Link :href="`/households/${household.id}/income-allocations/create`"
+                    class="inline-flex items-center gap-2 rounded-md bg-[#477b67] px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+                    Allocate Income
+                </Link>
+            </div>
         </div>
 
         <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">

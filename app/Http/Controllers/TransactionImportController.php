@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\FinancialAccount;
 use App\Models\Household;
+use App\Models\Transaction;
 use App\Models\TransactionImportProfile;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -16,13 +17,33 @@ class TransactionImportController extends Controller
         Request $request,
         Household $household
     ): Response {
-
-
         return Inertia::render('households/transactions/Import', [
             'household' => $household,
-            'accounts' => $this->accounts($household),
-            'preview' => [],
-            'profile' => null,
+
+            'accounts' => FinancialAccount::query()
+                ->where('household_id', $household->id)
+                ->where('is_active', true)
+                ->orderBy('account_name')
+                ->get([
+                    'id',
+                    'account_name',
+                    'institution_name',
+                    'currency',
+                ]),
+
+            'profiles' => TransactionImportProfile::query()
+                ->orderBy('name')
+                ->get([
+                    'id',
+                    'name',
+                    'header_signature',
+                    'date_column',
+                    'description_column',
+                    'amount_column',
+                    'debit_column',
+                    'credit_column',
+                    'date_format',
+                ]),
         ]);
     }
 
@@ -37,7 +58,7 @@ class TransactionImportController extends Controller
                 'required',
                 Rule::exists('financial_accounts', 'id')
                     ->where(
-                        fn ($query) => $query->where(
+                        fn($query) => $query->where(
                             'household_id',
                             $household->id
                         )
@@ -90,13 +111,134 @@ class TransactionImportController extends Controller
             ]);
     }
 
+    public function checkDuplicates(
+        Request $request,
+        Household $household
+    ) {
+        $validated = $request->validate([
+            'financial_account_id' => ['required', 'integer'],
+            'transactions' => ['required', 'array'],
+            'transactions.*.transaction_date' => ['required', 'date'],
+            'transactions.*.description' => ['required', 'string'],
+            'transactions.*.amount' => ['required', 'numeric'],
+        ]);
+
+        $account = FinancialAccount::query()
+            ->where('household_id', $household->id)
+            ->findOrFail($validated['financial_account_id']);
+
+        $transactions = collect($validated['transactions'])
+            ->map(function ($transaction) use ($account) {
+                $hash = hash('sha256', implode('|', [
+                    $account->id,
+                    $transaction['transaction_date'],
+                    number_format(
+                        (float) $transaction['amount'],
+                        2,
+                        '.',
+                        ''
+                    ),
+                    mb_strtolower(trim($transaction['description'])),
+                ]));
+
+                return [
+                    ...$transaction,
+                    'import_hash' => $hash,
+                ];
+            });
+
+        $existingHashes = Transaction::query()
+            ->where('financial_account_id', $account->id)
+            ->whereIn(
+                'import_hash',
+                $transactions->pluck('import_hash')
+            )
+            ->pluck('import_hash')
+            ->all();
+
+        return response()->json([
+            'transactions' => $transactions->values(),
+            'existing_hashes' => $existingHashes,
+        ]);
+    }
+    public function store(
+        Request $request,
+        Household $household
+    ) {
+        $validated = $request->validate([
+            'financial_account_id' => ['required', 'integer'],
+
+            'transactions' => ['required', 'array'],
+
+            'transactions.*.transaction_date' => ['required', 'date'],
+            'transactions.*.description' => ['required', 'string'],
+            'transactions.*.amount' => ['required', 'numeric'],
+            'transactions.*.currency' => ['required', 'string', 'size:3'],
+        ]);
+
+        $account = FinancialAccount::query()
+            ->where('household_id', $household->id)
+            ->findOrFail($validated['financial_account_id']);
+
+        $imported = 0;
+        $skipped = 0;
+
+        foreach ($validated['transactions'] as $transaction) {
+            $hash = hash('sha256', implode('|', [
+                $account->id,
+                $transaction['transaction_date'],
+                number_format(
+                    (float) $transaction['amount'],
+                    2,
+                    '.',
+                    ''
+                ),
+                mb_strtolower(trim($transaction['description'])),
+            ]));
+
+            $alreadyExists = Transaction::query()
+                ->where('financial_account_id', $account->id)
+                ->where('import_hash', $hash)
+                ->exists();
+
+            if ($alreadyExists) {
+                $skipped++;
+
+                continue;
+            }
+
+            Transaction::create([
+                'household_id' => $household->id,
+                'financial_account_id' => $account->id,
+                'category_id' => null,
+                'transaction_date' => $transaction['transaction_date'],
+                'posted_date' => $transaction['transaction_date'],
+                'description' => null,
+                'payee' => trim($transaction['description']),
+                'amount' => $transaction['amount'],
+                'currency' => strtoupper($transaction['currency']),
+                'external_id' => null,
+                'import_source' => 'csv-paste',
+                'import_hash' => $hash,
+                'comment' => null,
+            ]);
+
+            $imported++;
+        }
+
+        return response()->json([
+            'imported' => $imported,
+            'skipped' => $skipped,
+        ]);
+    }
+
     private function parseCsv(string $csv): array
     {
         $lines = preg_split('/\r\n|\r|\n/', trim($csv));
 
         $lines = array_values(array_filter(
             $lines,
-            fn ($line) => trim($line) !== ''
+            fn($line) => trim($line) !== ''
         ));
 
         if (count($lines) < 2) {
@@ -111,7 +253,7 @@ class TransactionImportController extends Controller
         // Remove blank trailing columns.
         $headers = array_values(array_filter(
             array_map('trim', $headers),
-            fn ($header) => $header !== ''
+            fn($header) => $header !== ''
         ));
 
         $headerSignature = implode('|', $headers);
