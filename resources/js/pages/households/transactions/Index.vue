@@ -44,37 +44,37 @@ function formatDate(date: string | null) {
 
 <template>
     <div class="p-6">
-        <div class="mb-6 flex items-center justify-between">
+
+        <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-                <h1 class="text-2xl font-semibold text-gray-900">
+                <h1 class="text-3xl font-semibold text-gray-900 dark:text-white">
                     Transactions
                 </h1>
 
-                <p class="mt-1 text-sm text-gray-600">
+                <p class="mt-1 text-lg text-gray-500 dark:text-gray-400">
                     {{ household.household_name }}
                 </p>
             </div>
 
-            <div class="flex items-center gap-3">
-
-
+            <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                 <Link :href="`/households/${household.id}/transactions/import`"
-                    class="inline-flex items-center gap-2 rounded-md bg-[#477b67] px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+                    class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#477b67] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#3c6958]">
                     <Upload class="h-4 w-4" />
                     Import
                 </Link>
+
                 <Link :href="`/households/${household.id}/transactions/review`"
-                    class="inline-flex items-center gap-2 rounded-md bg-[#477b67] px-4 py-2 text-sm font-medium text-white hover:opacity-90">
-                    <ClipboardCheck class="h-4 w-4" />
+                    class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#477b67] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#3c6958]">
+                    <Tag class="h-4 w-4" />
                     Review
                 </Link>
-                <Link :href="`/households/${household.id}/income-allocations/create`"
-                    class="inline-flex items-center gap-2 rounded-md bg-[#477b67] px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+
+                <Link :href="`/households/${household.id}/transactions/allocate`"
+                    class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#477b67] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#3c6958]">
                     Allocate Income
                 </Link>
             </div>
         </div>
-
         <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">

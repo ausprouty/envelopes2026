@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { categoryColors } from '@/lib/categoryColors';
 
 type Household = {
     id: number;
@@ -46,6 +48,20 @@ const contextLabel = (context: string) => {
 
     return labels[context] ?? context;
 };
+const categoriesWithColors = computed(() => {
+    let headingIndex = -1;
+
+    return props.categories.map((category) => {
+        if (category.category_type === 'heading') {
+            headingIndex++;
+        }
+
+        return {
+            ...category,
+            colorIndex: Math.max(headingIndex, 0),
+        };
+    });
+});
 </script>
 
 <template>
@@ -92,123 +108,172 @@ const contextLabel = (context: string) => {
         <div v-else
             class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead class="bg-gray-50 dark:bg-gray-800">
-                        <tr>
-                            <th
-                                class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                Order
-                            </th>
+                <div class="hidden md:block">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-800">
+                            <tr>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                    Order
+                                </th>
 
-                            <th
-                                class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                Code
-                            </th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                    Code
+                                </th>
 
-                            <th
-                                class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                Category
-                            </th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                    Category
+                                </th>
 
-                            <th
-                                class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                Type
-                            </th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                    Type
+                                </th>
 
-                            <th
-                                class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                Balance
-                            </th>
+                                <th
+                                    class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                    Balance
+                                </th>
 
-                            <th
-                                class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                Context
-                            </th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                    Context
+                                </th>
 
 
 
-                            <th
-                                class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                Status
-                            </th>
+                                <th
+                                    class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                    Status
+                                </th>
 
-                            <th class="px-4 py-3">
-                                <span class="sr-only">Edit</span>
-                            </th>
-                        </tr>
-                    </thead>
+                                <th class="px-4 py-3">
+                                    <span class="sr-only">Edit</span>
+                                </th>
+                            </tr>
+                        </thead>
 
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                        <tr v-for="category in categories" :key="category.id" :class="[
-                            'transition hover:bg-gray-50 dark:hover:bg-gray-800/60',
-                            !category.is_active
-                                ? 'opacity-50'
-                                : '',
-                        ]">
-                            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                                {{ category.display_order }}
-                            </td>
+                        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                            <tr v-for="category in categoriesWithColors" :key="category.id" :class="category.category_type === 'heading'
+                                ? categoryColors[
+                                    category.colorIndex % categoryColors.length
+                                ].heading
+                                : categoryColors[
+                                    category.colorIndex % categoryColors.length
+                                ].child
+                                ">
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                                    {{ category.display_order }}
+                                </td>
 
-                            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                                {{ category.code || '—' }}
-                            </td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                                    {{ category.code || '—' }}
+                                </td>
 
-                            <td class="px-4 py-3">
-                                <div :class="[
-                                    'text-gray-900 dark:text-white',
-                                    category.category_type === 'heading'
-                                        ? 'text-base font-bold text-[#477b67] dark:text-[#8fc0aa]'
-                                        : 'text-sm font-medium',
-                                    category.parent_category_id
-                                        ? 'pl-6'
-                                        : '',
-                                ]">
-                                    <span v-if="category.parent_category_id" class="mr-2 text-gray-300">
-                                        ↳
+                                <td class="px-4 py-3">
+                                    <div :class="[
+                                        'text-gray-900 dark:text-white',
+                                        category.category_type === 'heading'
+                                            ? 'text-base font-bold text-[#477b67] dark:text-[#8fc0aa]'
+                                            : 'text-sm font-medium',
+                                        category.parent_category_id
+                                            ? 'pl-6'
+                                            : '',
+                                    ]">
+
+
+                                        {{ category.name }}
+                                    </div>
+                                </td>
+
+                                <td class="whitespace-nowrap px-4 py-3">
+                                    <span
+                                        class="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                                        {{ typeLabel(category.category_type) }}
                                     </span>
+                                </td>
+                                <td
+                                    class="whitespace-nowrap px-4 py-3 text-center text-sm text-gray-600 dark:text-gray-300">
+                                    {{ category.tracks_balance ? 'Yes' : 'No' }}
+                                </td>
+
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                                    {{ contextLabel(category.context) }}
+                                </td>
+
+
+
+                                <td class="whitespace-nowrap px-4 py-3 text-center">
+                                    <span v-if="category.is_active"
+                                        class="inline-flex rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-300">
+                                        Active
+                                    </span>
+
+                                    <span v-else
+                                        class="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                                        Inactive
+                                    </span>
+                                </td>
+
+                                <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
+                                    <Link :href="`/households/${household.id}/categories/${category.id}/edit`"
+                                        class="font-medium text-gray-700 hover:text-gray-950 dark:text-gray-300 dark:hover:text-white">
+                                        Edit
+                                    </Link>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="space-y-3 md:hidden">
+                    <div v-for="category in categories" :key="category.id"
+                        class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <div class="font-semibold text-gray-900"
+                                    :class="category.category_type === 'heading' ? 'text-lg' : ''">
+
 
                                     {{ category.name }}
                                 </div>
-                            </td>
 
-                            <td class="whitespace-nowrap px-4 py-3">
-                                <span
-                                    class="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                                    {{ typeLabel(category.category_type) }}
-                                </span>
-                            </td>
-                            <td
-                                class="whitespace-nowrap px-4 py-3 text-center text-sm text-gray-600 dark:text-gray-300">
-                                {{ category.tracks_balance ? 'Yes' : 'No' }}
-                            </td>
+                                <div class="mt-1 text-sm text-gray-500">
+                                    Code: {{ category.code || '—' }}
+                                </div>
+                            </div>
 
-                            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                                {{ contextLabel(category.context) }}
-                            </td>
+                            <span
+                                class="shrink-0 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
+                                {{ category.category_type }}
+                            </span>
+                        </div>
 
+                        <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                                <div class="text-gray-500">Tracks balance</div>
+                                <div class="font-medium text-gray-900">
+                                    {{ category.tracks_balance ? 'Yes' : 'No' }}
+                                </div>
+                            </div>
 
+                            <div>
+                                <div class="text-gray-500">Status</div>
+                                <div class="font-medium text-gray-900">
+                                    {{ category.is_active ? 'Active' : 'Inactive' }}
+                                </div>
+                            </div>
+                        </div>
 
-                            <td class="whitespace-nowrap px-4 py-3 text-center">
-                                <span v-if="category.is_active"
-                                    class="inline-flex rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-300">
-                                    Active
-                                </span>
-
-                                <span v-else
-                                    class="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                                    Inactive
-                                </span>
-                            </td>
-
-                            <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
-                                <Link :href="`/households/${household.id}/categories/${category.id}/edit`"
-                                    class="font-medium text-gray-700 hover:text-gray-950 dark:text-gray-300 dark:hover:text-white">
-                                    Edit
-                                </Link>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                        <div class="mt-4 border-t border-gray-100 pt-3 text-right">
+                            <Link :href="`/households/${household.id}/categories/${category.id}/edit`"
+                                class="text-sm font-medium text-[#477b67] hover:underline">
+                                Edit
+                            </Link>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

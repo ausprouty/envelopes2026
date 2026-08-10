@@ -132,98 +132,91 @@ const dashboardUrl = computed(() => {
                 </div>
 
                 <div class="relative">
-                    <div class="absolute -left-5 top-8 h-40 w-40 rounded-full bg-[#dce9e1] blur-2xl"></div>
-                    <div class="absolute -right-5 bottom-8 h-40 w-40 rounded-full bg-[#f0dca8] blur-2xl"></div>
+                    <div class="absolute -left-8 top-10 h-44 w-44 rounded-full bg-[#dce9e1] blur-3xl"></div>
+
+                    <div class="absolute -right-6 bottom-8 h-44 w-44 rounded-full bg-[#f0dca8] blur-3xl"></div>
 
                     <div
-                        class="relative overflow-hidden rounded-[2rem] border border-white/70 bg-white/75 p-6 shadow-xl backdrop-blur sm:p-8">
-                        <div class="mb-7 flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-[#77847d]">
-                                    Available this month
-                                </p>
-                                <p class="mt-1 text-3xl font-semibold text-[#26352f]">
-                                    $2,480
-                                </p>
+                        class="relative overflow-hidden rounded-[2rem] border border-white/70 bg-white/70 p-7 shadow-xl backdrop-blur sm:p-9">
+                        <div class="mb-7 text-center">
+                            <p class="text-sm font-medium uppercase tracking-wider text-[#44725d]">
+                                Life has lots of envelopes
+                            </p>
+
+                            <h2 class="mt-2 text-2xl font-semibold text-[#26352f]">
+                                Keep what matters in view.
+                            </h2>
+
+                            <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-[#77847d]">
+                                Food, family, transport, giving and the everyday things in
+                                between.
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="flex flex-col items-center rounded-2xl bg-[#eef7f2] p-4">
+                                <img src="/images/categories/groceries.png" alt="Groceries"
+                                    class="h-20 w-20 rounded-2xl object-cover" />
+
+                                <span class="mt-2 text-sm font-medium text-[#26352f]">
+                                    Groceries
+                                </span>
                             </div>
 
-                            <div class="rounded-full bg-[#e5eee8] px-3 py-1 text-sm font-medium text-[#44725d]">
-                                On track
+                            <div class="flex flex-col items-center rounded-2xl bg-[#fff6df] p-4">
+                                <img src="/images/categories/home.png" alt="Home"
+                                    class="h-20 w-20 rounded-2xl object-cover" />
+
+                                <span class="mt-2 text-sm font-medium text-[#26352f]">
+                                    Home
+                                </span>
+                            </div>
+
+                            <div class="flex flex-col items-center rounded-2xl bg-[#edf4fb] p-4">
+                                <img src="/images/categories/transport.png" alt="Transport"
+                                    class="h-20 w-20 rounded-2xl object-cover" />
+
+                                <span class="mt-2 text-sm font-medium text-[#26352f]">
+                                    Transport
+                                </span>
+                            </div>
+
+                            <div class="flex flex-col items-center rounded-2xl bg-[#f7eef5] p-4">
+                                <img src="/images/categories/family.png" alt="Family"
+                                    class="h-20 w-20 rounded-2xl object-cover" />
+
+                                <span class="mt-2 text-sm font-medium text-[#26352f]">
+                                    Family
+                                </span>
+                            </div>
+
+                            <div class="flex flex-col items-center rounded-2xl bg-[#fff0eb] p-4">
+                                <img src="/images/categories/gifts.png" alt="Gifts"
+                                    class="h-20 w-20 rounded-2xl object-cover" />
+
+                                <span class="mt-2 text-sm font-medium text-[#26352f]">
+                                    Giving
+                                </span>
+                            </div>
+
+                            <div class="flex flex-col items-center rounded-2xl bg-[#eef7f2] p-4">
+                                <img src="/images/categories/money.png" alt="Money"
+                                    class="h-20 w-20 rounded-2xl object-cover" />
+
+                                <span class="mt-2 text-sm font-medium text-[#26352f]">
+                                    Money
+                                </span>
                             </div>
                         </div>
 
-                        <div class="space-y-4">
-                            <div class="rounded-2xl border border-[#e3e8e4] bg-[#fffdf8] p-5">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-3">
-                                        <div
-                                            class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e7efe9] text-xl">
-                                            🏠
-                                        </div>
-                                        <div>
-                                            <p class="font-semibold">Housing</p>
-                                            <p class="text-sm text-[#7b8780]">
-                                                Rent and household bills
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <p class="font-semibold">$1,200</p>
-                                </div>
-                            </div>
+                        <div class="mt-6 rounded-2xl bg-[#44725d] px-5 py-4 text-center text-white">
+                            <p class="font-semibold">
+                                Simple enough to use every week.
+                            </p>
 
-                            <div class="rounded-2xl border border-[#e3e8e4] bg-[#fffdf8] p-5">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-3">
-                                        <div
-                                            class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#f3e9ca] text-xl">
-                                            🛒
-                                        </div>
-                                        <div>
-                                            <p class="font-semibold">Groceries</p>
-                                            <p class="text-sm text-[#7b8780]">
-                                                Food and household supplies
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <p class="font-semibold">$480</p>
-                                </div>
-                            </div>
-
-                            <div class="rounded-2xl border border-[#e3e8e4] bg-[#fffdf8] p-5">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-3">
-                                        <div
-                                            class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e6edf4] text-xl">
-                                            🚗
-                                        </div>
-                                        <div>
-                                            <p class="font-semibold">Transport</p>
-                                            <p class="text-sm text-[#7b8780]">
-                                                Fuel, repairs and travel
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <p class="font-semibold">$350</p>
-                                </div>
-                            </div>
-
-                            <div class="rounded-2xl border border-[#e3e8e4] bg-[#fffdf8] p-5">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-3">
-                                        <div
-                                            class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#f0e4e1] text-xl">
-                                            ❤️
-                                        </div>
-                                        <div>
-                                            <p class="font-semibold">Giving</p>
-                                            <p class="text-sm text-[#7b8780]">
-                                                Generosity and special needs
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <p class="font-semibold">$450</p>
-                                </div>
-                            </div>
+                            <p class="mt-1 text-sm text-white/80">
+                                Clear enough to know where your money stands.
+                            </p>
                         </div>
                     </div>
                 </div>

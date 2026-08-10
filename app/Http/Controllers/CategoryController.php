@@ -48,7 +48,6 @@ class CategoryController extends Controller
 
 
         $validated = $this->validateCategory($request, $household);
-        //dd($validated);
 
         $validated['household_id'] = $household->id;
 
@@ -106,6 +105,9 @@ class CategoryController extends Controller
         return $request->validate([
             'code' => ['nullable', 'string', 'max:20'],
             'name' => ['required', 'string', 'max:150'],
+            'icon' => ['nullable', 'string', 'max:100'],
+            'needs_attention' => ['required', 'boolean'],
+            'dashboard_image' => ['nullable', 'string', 'max:255'],
 
             'parent_category_id' => [
                 'nullable',
@@ -162,5 +164,5 @@ class CategoryController extends Controller
         );
     }
 
-    
+
 }

@@ -19,12 +19,16 @@ class Category extends Model
         'tracks_balance',
         'is_active',
         'display_order',
+        'icon',
+        'needs_attention',
+        'dashboard_image',
     ];
 
     protected function casts(): array
     {
         return [
             'tracks_balance' => 'boolean',
+            'needs_attention' => 'boolean',
             'is_active' => 'boolean',
             'display_order' => 'integer',
         ];

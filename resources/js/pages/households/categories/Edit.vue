@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import { categoryIconOptions } from '@/lib/categoryIcons';
+import { categoryImages } from '@/lib/categoryImages';
+
 
 type Household = {
     id: number;
@@ -17,6 +20,9 @@ type Category = {
     tracks_balance: boolean;
     is_active: boolean;
     display_order: number;
+    icon: string | null;
+    needs_attention: boolean;
+    dashboard_image: string | null;
 };
 
 type ParentCategory = {
@@ -41,7 +47,12 @@ const form = useForm({
     tracks_balance: props.category?.tracks_balance ?? true,
     is_active: props.category?.is_active ?? true,
     display_order: props.category?.display_order ?? 0,
+    icon: props.category?.icon ?? '',
+    needs_attention: props.category?.needs_attention ?? false,
+    dashboard_image: props.category?.dashboard_image ?? '',
 });
+
+
 
 const submit = () => {
     if (isEditing.value && props.category) {
@@ -165,6 +176,55 @@ const submit = () => {
                     </div>
                 </div>
 
+                <!-- Icon -->
+                <div v-if="form.category_type === 'heading'">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Icon
+                    </label>
+
+                    <div class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <button v-for="option in categoryIconOptions" :key="option.value" type="button"
+                            @click="form.icon = option.value"
+                            class="flex items-center gap-3 rounded-lg border px-3 py-3 text-left transition" :class="form.icon === option.value
+                                ? 'border-[#477b67] bg-[#eef5f1] text-[#355e4f] dark:bg-gray-700'
+                                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                                ">
+                            <component :is="option.icon" class="h-5 w-5" />
+
+
+                        </button>
+                    </div>
+
+                    <button v-if="form.icon" type="button" @click="form.icon = ''"
+                        class="mt-3 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400">
+                        Remove icon
+                    </button>
+
+                    <p v-if="form.errors.icon" class="mt-1 text-sm text-red-600">
+                        {{ form.errors.icon }}
+                    </p>
+                </div>
+
+                // Category Image
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Category image
+                    </label>
+
+                    <div class="mt-2 grid grid-cols-4 gap-3 sm:grid-cols-6">
+                        <button v-for="image in categoryImages" :key="image.value" type="button"
+                            @click="form.dashboard_image = image.value" class="rounded-xl border p-2 transition" :class="form.dashboard_image === image.value
+                                ? 'border-[#477b67] bg-[#eef5f1]'
+                                : 'border-gray-300 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800'
+                                " :title="image.label">
+                            <img :src="`/images/categories/${image.value}`" :alt="image.label"
+                                class="mx-auto h-10 w-10 object-contain" />
+                        </button>
+                    </div>
+                </div>
+
+
                 <!-- Context -->
                 <div>
                     <label for="context" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -198,6 +258,20 @@ const submit = () => {
                             <span class="block text-sm text-gray-500 dark:text-gray-400">
                                 Include this category when calculating envelope
                                 balances.
+                            </span>
+                        </span>
+                    </label>
+                    <label class="flex items-start gap-3">
+                        <input v-model="form.needs_attention" type="checkbox"
+                            class="mt-1 h-4 w-4 rounded border-gray-300" />
+
+                        <span>
+                            <span class="block text-sm font-medium text-gray-900 dark:text-white">
+                                Watch this envelope
+                            </span>
+
+                            <span class="block text-sm text-gray-500 dark:text-gray-400">
+                                Show this envelope on the dashboard.
                             </span>
                         </span>
                     </label>

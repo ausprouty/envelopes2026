@@ -19,6 +19,7 @@ class DashboardController extends Controller
             ->where('category_type', 'heading')
             ->where('is_active', true)
             ->orderBy('display_order')
+            ->orderBy('name')
             ->get()
             ->map(function (Category $heading) use ($household) {
                 $balance = Category::query()
@@ -31,12 +32,11 @@ class DashboardController extends Controller
                 return [
                     'id' => $heading->id,
                     'name' => $heading->name,
+                    'icon' => $heading->icon,
+                    'dashboard_image' => $heading->dashboard_image,
                     'balance' => (float) $balance,
                 ];
             })
-            ->filter(
-                fn ($heading) => $heading['balance'] != 0
-            )
             ->values();
 
         $totalAvailable = Category::query()
@@ -46,10 +46,35 @@ class DashboardController extends Controller
             ->where('code', '!=', 'income_pool')
             ->sum('current_balance');
 
-        return Inertia::render('Dashboard', [
-            'household' => $household,
+        $watchCategories = Category::query()
+            ->where('household_id', $household->id)
+            ->where('is_active', true)
+            ->where('tracks_balance', true)
+            ->where('category_type', '!=', 'heading')
+            ->where(function ($query) {
+                $query
+                    ->where('needs_attention', true)
+                    ->orWhere('current_balance', '<', 0);
+            })
+            ->orderByRaw('current_balance < 0 DESC')
+            ->orderBy('name')
+            ->get([
+                'id',
+                'name',
+                'dashboard_image',
+                'current_balance',
+                'needs_attention',
+            ]);
+
+        return Inertia::render('households/dashboard/Index', [
+            'household' => [
+                'id' => $household->id,
+                'household_name' => $household->household_name,
+                'default_currency' => $household->default_currency,
+            ],
             'headings' => $headings,
             'totalAvailable' => (float) $totalAvailable,
+            'watchCategories' => $watchCategories,
         ]);
     }
 }
