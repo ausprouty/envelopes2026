@@ -186,14 +186,17 @@ class IncomeAllocationController extends Controller
                     ->where('tracks_balance', true)
                     ->findOrFail($line['category_id']);
 
+                $balanceBefore = (float) $category->current_balance;
+
                 $allocation->lines()->create([
                     'category_id' => $category->id,
                     'amount' => $line['amount'],
-                    'balance_before' => $this->currentBalance(
-                        $household,
-                        $category
-                    ),
+                    'balance_before' =>  $balanceBefore
                 ]);
+                $category->increment(
+                    'current_balance',
+                    (float) $line['amount']
+                );
             }
         });
 
@@ -212,25 +215,8 @@ class IncomeAllocationController extends Controller
         Household $household,
         Category $category
     ): float {
-        $transactions = Transaction::query()
-            ->where('household_id', $household->id)
-            ->where('category_id', $category->id)
-            ->sum('amount');
-
-        $allocations = IncomeAllocationLine::query()
-            ->where('category_id', $category->id)
-            ->whereHas(
-                'incomeAllocation',
-                fn($query) => $query->where(
-                    'household_id',
-                    $household->id
-                )
-            )
-            ->sum('amount');
-
-        return (float) $transactions + (float) $allocations;
+        return (float) $category->current_balance;
     }
-
 
     private function availableToAllocate(
         Household $household

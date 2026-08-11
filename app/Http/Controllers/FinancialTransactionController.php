@@ -62,9 +62,20 @@ class FinancialTransactionController extends Controller
                 break;
             }
 
+            $category = Category::query()
+                ->where('household_id', $household->id)
+                ->findOrFail($rule->category_id);
+
             $transaction->update([
-                'category_id' => $rule->category_id,
+                'category_id' => $category->id,
             ]);
+
+            if ($category->tracks_balance) {
+                $category->increment(
+                    'current_balance',
+                    (float) $transaction->amount
+                );
+            }
         }
 
         return Inertia::render('households/transactions/Review', [
@@ -134,9 +145,37 @@ class FinancialTransactionController extends Controller
             ],
         ]);
 
-        $transaction->update([
-            'category_id' => $validated['category_id'],
-        ]);
+        $oldCategoryId = $transaction->category_id;
+
+        $newCategory = Category::query()
+            ->where('household_id', $household->id)
+            ->findOrFail($validated['category_id']);
+
+        if ($oldCategoryId && $oldCategoryId !== $newCategory->id) {
+            $oldCategory = Category::query()
+                ->where('household_id', $household->id)
+                ->find($oldCategoryId);
+
+            if ($oldCategory && $oldCategory->tracks_balance) {
+                $oldCategory->decrement(
+                    'current_balance',
+                    (float) $transaction->amount
+                );
+            }
+        }
+
+        if ($oldCategoryId !== $newCategory->id) {
+            if ($newCategory->tracks_balance) {
+                $newCategory->increment(
+                    'current_balance',
+                    (float) $transaction->amount
+                );
+            }
+
+            $transaction->update([
+                'category_id' => $newCategory->id,
+            ]);
+        }
 
         if ($validated['always']) {
             TransactionCategoryRule::updateOrCreate(

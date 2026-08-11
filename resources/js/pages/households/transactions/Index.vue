@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Upload, ClipboardCheck } from '@lucide/vue';
+import { Upload } from '@lucide/vue';
 
 
 defineProps<{

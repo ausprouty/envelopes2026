@@ -182,8 +182,6 @@ const categoriesWithColors = computed(() => {
                                             ? 'pl-6'
                                             : '',
                                     ]">
-
-
                                         {{ category.name }}
                                     </div>
                                 </td>

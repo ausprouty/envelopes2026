@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Household;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -77,4 +78,92 @@ class DashboardController extends Controller
             'watchCategories' => $watchCategories,
         ]);
     }
+
+    public function category(
+        Request $request,
+        Household $household,
+        Category $category
+    ): Response {
+        abort_unless(
+            $category->household_id === $household->id,
+            404
+        );
+
+        abort_unless(
+            $category->category_type === 'heading',
+            404
+        );
+
+        $envelopes = Category::query()
+            ->where('household_id', $household->id)
+            ->where('parent_category_id', $category->id)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get()
+            ->map(function (Category $envelope) {
+                return [
+                    'id' => $envelope->id,
+                    'name' => $envelope->name,
+                    'dashboard_image' => $envelope->dashboard_image,
+                    'balance' => (float) $envelope->current_balance,
+                    'needs_attention' => (bool) $envelope->needs_attention,
+                ];
+            });
+
+        return Inertia::render('households/dashboard/Category', [
+            'household' => [
+                'id' => $household->id,
+                'household_name' => $household->household_name,
+                'default_currency' => $household->default_currency,
+            ],
+            'category' => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'dashboard_image' => $category->dashboard_image,
+            ],
+            'envelopes' => $envelopes,
+        ]);
+    }
+
+    public function envelope(
+    Household $household,
+    Category $category
+): Response {
+    abort_unless(
+        $category->household_id === $household->id,
+        404
+    );
+
+    $transactions = Transaction::query()
+        ->where('household_id', $household->id)
+        ->where('category_id', $category->id)
+        ->orderByDesc('transaction_date')
+        ->orderByDesc('id')
+        ->limit(20)
+        ->get();
+
+    $spentThisMonth = Transaction::query()
+        ->where('household_id', $household->id)
+        ->where('category_id', $category->id)
+        ->whereBetween('transaction_date', [
+            now()->startOfMonth()->toDateString(),
+            now()->toDateString(),
+        ])
+        ->where('amount', '<', 0)
+        ->sum('amount');
+
+    return Inertia::render('households/dashboard/Envelope', [
+        'household' => $household,
+
+        'envelope' => [
+            'id' => $category->id,
+            'name' => $category->name,
+            'current_balance' => (float) $category->current_balance,
+            'spent_this_month' => abs((float) $spentThisMonth),
+        ],
+
+        'transactions' => $transactions,
+    ]);
+}
+
 }

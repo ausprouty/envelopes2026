@@ -93,6 +93,16 @@ Route::middleware([
             [DashboardController::class, 'index']
         )->name('dashboard');
 
+        Route::get(
+            '/dashboard/categories/{category}',
+            [DashboardController::class, 'category']
+        )->name('dashboard.category');
+
+        Route::get(
+            '/dashboard/envelopes/{category}',
+            [DashboardController::class, 'envelope']
+        )->name('dashboard.envelope');
+
         Route::post(
             '/income-allocations',
             [IncomeAllocationController::class, 'store']
