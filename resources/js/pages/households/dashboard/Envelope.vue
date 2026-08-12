@@ -15,6 +15,7 @@ interface Household {
 interface Envelope {
     id: number;
     name: string;
+    image: string | null;
     current_balance: number;
     spent_this_month: number;
 }
@@ -69,13 +70,21 @@ const shortDate = (date: string) => {
         </div>
 
         <!-- Envelope heading -->
-        <div class="mb-6">
-            <h1 class="text-2xl font-semibold text-gray-900">
-                {{ envelope.name }}
-            </h1>
+        <div class="flex items-center gap-4">
 
-            <div class="mt-1 text-sm text-gray-500">
-                {{ household.household_name }}
+            <div v-if="envelope.image" class="flex h-20 w-20 shrink-0 items-center justify-center">
+                <img :src="`/images/categories/${envelope.image}`" :alt="envelope.name"
+                    class="h-full w-full object-contain" />
+            </div>
+            <div>
+                <h1 class="text-3xl font-semibold text-slate-950">
+                    {{ envelope.name }}
+                </h1>
+
+                <div class="mt-1 text-lg text-slate-500">
+                    {{ household.household_name }}
+                </div>
+
             </div>
         </div>
 

@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, useForm } from '@inertiajs/vue3';
 import { ChevronDown, ChevronUp, Upload } from '@lucide/vue';
+
 import { computed, ref } from 'vue';
+
 
 const props = defineProps<{
     household: {
@@ -29,14 +31,107 @@ const props = defineProps<{
     }>;
 }>();
 
+
+const importType = ref<'csv' | 'qfx'>('csv');
+
+const qfxForm = useForm({
+    financial_account_id: '',
+    qfx_file: null as File | null,
+});
+
+const selectQfxFile = (event: Event) => {
+    const input = event.target as HTMLInputElement;
+
+    qfxForm.qfx_file = input.files?.[0] ?? null;
+};
+
+const submitQfx = async () => {
+    errorMessage.value = '';
+    preview.value = [];
+
+    if (!qfxForm.financial_account_id) {
+        errorMessage.value = 'Please select an account.';
+
+        return;
+    }
+
+    if (!qfxForm.qfx_file) {
+        errorMessage.value = 'Please select a QFX file.';
+
+        return;
+    }
+
+    const formData = new FormData();
+
+    formData.append(
+        'financial_account_id',
+        String(qfxForm.financial_account_id)
+    );
+
+    formData.append(
+        'qfx_file',
+        qfxForm.qfx_file
+    );
+
+    const response = await fetch(
+        `/households/${props.household.id}/transactions/import/qfx/preview`,
+        {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN':
+                    document
+                        .querySelector('meta[name="csrf-token"]')
+                        ?.getAttribute('content') ?? '',
+                'Accept': 'application/json',
+            },
+            body: formData,
+        }
+    );
+
+    if (!response.ok) {
+        const errorData = await response.json();
+
+        console.log('QFX upload error:', errorData);
+
+        errorMessage.value =
+            errorData.message ?? 'Unable to read the QFX file.';
+
+        return;
+    }
+
+    const data = await response.json();
+
+    preview.value = data.transactions.map(
+        (transaction: {
+            transaction_date: string;
+            description: string;
+            amount: number;
+            currency: string;
+            external_id?: string;
+        }) => ({
+            ...transaction,
+            status: 'new' as const,
+        })
+    );
+
+    financialAccountId.value =
+        Number(qfxForm.financial_account_id);
+
+    await checkDuplicates();
+
+    showImportForm.value = false;
+};
+
 const financialAccountId = ref<number | ''>('');
 const csv = ref('');
 const preview = ref<Array<{
     transaction_date: string;
-    description: string;
+    payee: string;
+    description?: string;
     amount: number;
     currency: string;
     import_hash?: string;
+    external_id?: string;
     status?: 'new' | 'duplicate';
 }>>([]);
 
@@ -192,17 +287,20 @@ async function previewCsv() {
     const account = selectedAccount.value;
 
     if (!account) {
-        errorMessage.value = 'The selected account could not be found.';
+        errorMessage.value =
+            'The selected account could not be found.';
 
         return;
     }
 
     const transactions: Array<{
         transaction_date: string;
-        description: string;
+        payee: string;
+        description?: string;
         amount: number;
         currency: string;
         import_hash?: string;
+        external_id?: string;
         status?: 'new' | 'duplicate';
     }> = [];
 
@@ -229,10 +327,10 @@ async function previewCsv() {
             continue;
         }
 
-        const description =
+        const payee =
             row[profile.description_column]?.trim();
 
-        if (!description) {
+        if (!payee) {
             continue;
         }
 
@@ -264,7 +362,8 @@ async function previewCsv() {
 
         transactions.push({
             transaction_date: transactionDate,
-            description,
+            payee,
+            description: '',
             amount,
             currency: account.currency,
             import_hash: '',
@@ -273,6 +372,7 @@ async function previewCsv() {
     }
 
     preview.value = transactions;
+
     await checkDuplicates();
 
     if (transactions.length === 0) {
@@ -305,15 +405,17 @@ async function checkDuplicates() {
                 financial_account_id: financialAccountId.value,
                 transactions: preview.value.map(transaction => ({
                     transaction_date: transaction.transaction_date,
-                    description: transaction.description,
+                    payee: transaction.payee,
                     amount: transaction.amount,
+                    external_id: transaction.external_id ?? null,
                 })),
             }),
         }
     );
 
     if (!response.ok) {
-        errorMessage.value = 'Unable to check for duplicate transactions.';
+        errorMessage.value =
+            'Unable to check for duplicate transactions.';
 
         return;
     }
@@ -327,9 +429,10 @@ async function checkDuplicates() {
     preview.value = data.transactions.map(
         (transaction: {
             transaction_date: string;
-            description: string;
+            payee: string;
             amount: number;
             import_hash: string;
+            external_id?: string | null;
         }) => ({
             ...transaction,
             currency: selectedAccount.value?.currency ?? '',
@@ -370,9 +473,11 @@ async function importTransactions() {
                 financial_account_id: financialAccountId.value,
                 transactions: newTransactions.value.map(transaction => ({
                     transaction_date: transaction.transaction_date,
-                    description: transaction.description,
+                    payee: transaction.payee,
+                    description: transaction.description ?? '',
                     amount: transaction.amount,
                     currency: transaction.currency,
+                    external_id: transaction.external_id ?? null,
                 })),
             }),
         }
@@ -409,17 +514,51 @@ async function importTransactions() {
                 </h1>
 
                 <p class="mt-1 text-sm text-muted-foreground">
-                    Paste transaction CSV data from your bank.
+                    Import transactions from your bank.
                 </p>
             </div>
         </div>
 
-        <div class="rounded-xl border">
-            <div class="flex items-center justify-between px-6 py-4">
-                <div>
-                    <div class="font-medium">
+        <!-- ADD THE NEW CHOICE SECTION HERE -->
+        <div>
+            <div class="mb-3 text-sm font-medium text-gray-700">
+                How would you like to import transactions?
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-2">
+                <button type="button" class="rounded-xl border p-5 text-left transition" :class="importType === 'csv'
+                    ? 'border-[#477b67] bg-[#477b67]/5 ring-2 ring-[#477b67]/20'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                    " @click="importType = 'csv'">
+                    <div class="text-base font-semibold text-gray-900">
                         CSV Import
                     </div>
+
+                    <div class="mt-1 text-sm text-gray-500">
+                        Paste transaction data downloaded from your bank.
+                    </div>
+                </button>
+
+                <button type="button" class="rounded-xl border p-5 text-left transition" :class="importType === 'qfx'
+                    ? 'border-[#477b67] bg-[#477b67]/5 ring-2 ring-[#477b67]/20'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                    " @click="importType = 'qfx'">
+                    <div class="text-base font-semibold text-gray-900">
+                        QFX Import
+                    </div>
+
+                    <div class="mt-1 text-sm text-gray-500">
+                        Upload a QFX file downloaded from your bank.
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- YOUR EXISTING CSV CARD STARTS HERE -->
+        <div v-if="importType === 'csv'" class="rounded-xl border">
+            <div class="flex items-center justify-between px-6 py-4">
+                <div>
+
 
                     <div v-if="matchedProfile" class="mt-1 text-sm text-muted-foreground">
                         Format recognized:
@@ -483,6 +622,54 @@ async function importTransactions() {
                 </button>
             </div>
         </div>
+        <div v-else class="rounded-xl border">
+            <div class="px-6 py-4">
+                <div class="font-medium">
+                    QFX Import
+                </div>
+
+                <div class="mt-1 text-sm text-muted-foreground">
+                    Upload a QFX file downloaded from your bank.
+                </div>
+            </div>
+
+            <div class="border-t px-6 py-6">
+                <form @submit.prevent="submitQfx" class="space-y-6">
+
+                    <div>
+                        <label for="financial_account_id" class="mb-2 block text-sm font-medium">
+                            Account
+                        </label>
+
+                        <select id="financial_account_id" v-model="qfxForm.financial_account_id"
+                            class="w-full rounded-md border px-3 py-2">
+                            <option value="">
+                                Select an account
+                            </option>
+
+                            <option v-for="account in accounts" :key="account.id" :value="account.id">
+                                {{ account.account_name }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="qfx_file" class="mb-2 block text-sm font-medium">
+                            QFX File
+                        </label>
+
+                        <input id="qfx_file" type="file" accept=".qfx" class="block w-full rounded-md border px-3 py-2"
+                            @change="selectQfxFile" />
+                    </div>
+
+                    <button type="submit"
+                        class="rounded-md bg-[#477b67] px-4 py-2 font-medium text-white hover:opacity-90"
+                        :disabled="qfxForm.processing">
+                        Preview Transactions
+                    </button>
+                </form>
+            </div>
+        </div>
 
         <div v-if="preview.length" class="overflow-hidden rounded-xl border">
             <div class="flex items-center justify-between border-b bg-muted/40 px-4 py-3">
@@ -495,9 +682,6 @@ async function importTransactions() {
                     · {{ duplicateTransactions.length }} already imported
                 </div>
                 <div class="flex items-center justify-between border-b bg-muted/40 px-4 py-3">
-                    <div class="font-medium">
-                        Transaction Preview
-                    </div>
 
                     <div class="flex items-center gap-4">
                         <div class="text-sm text-muted-foreground">

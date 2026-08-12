@@ -158,6 +158,7 @@ class DashboardController extends Controller
         'envelope' => [
             'id' => $category->id,
             'name' => $category->name,
+            'image' => $category->dashboard_image,
             'current_balance' => (float) $category->current_balance,
             'spent_this_month' => abs((float) $spentThisMonth),
         ],

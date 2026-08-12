@@ -136,6 +136,11 @@ Route::middleware([
         )->name('transactions.import.check-duplicates');
 
         Route::post(
+            '/transactions/import/qfx/preview',
+            [TransactionImportController::class, 'previewQfx']
+        )->name('transactions.import.qfx.preview');
+
+        Route::post(
             '/transactions/import/store',
             [TransactionImportController::class, 'store']
         )->name('transactions.import.store');

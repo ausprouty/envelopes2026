@@ -47,6 +47,7 @@ class IncomeAllocationController extends Controller
                     'id' => $category->id,
                     'name' => $category->name,
                     'is_heading' => $isHeading,
+                    'dashboard_image' => $category->dashboard_image,
 
                     'current_balance' => $isHeading
                         ? null

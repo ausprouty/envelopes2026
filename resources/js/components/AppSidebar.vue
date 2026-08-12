@@ -79,15 +79,16 @@ const mainNavItems = computed<NavItem[]>(() => {
     if (id) {
         items.push(
             {
-                title: 'Accounts',
-                href: `/households/${id}/accounts`,
-                icon: WalletCards,
-            },
-            {
                 title: 'Transactions',
                 href: `/households/${id}/transactions`,
                 icon: ReceiptText,
             },
+            {
+                title: 'Accounts',
+                href: `/households/${id}/accounts`,
+                icon: WalletCards,
+            },
+
             {
                 title: 'Categories',
                 href: `/households/${id}/categories`,

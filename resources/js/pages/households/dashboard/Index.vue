@@ -73,6 +73,12 @@ defineProps<{
                             })
                         }}
                     </div>
+
+                    <Link :href="`/households/${household.id}/income-allocations/create`"
+                        class="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-white hover:underline">
+                        Allocate Income
+                        <ArrowRight class="h-4 w-4" />
+                    </Link>
                 </div>
             </div>
         </div>
