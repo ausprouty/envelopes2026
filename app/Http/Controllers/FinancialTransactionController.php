@@ -38,13 +38,14 @@ class FinancialTransactionController extends Controller
             'transactions' => $transactions,
         ]);
     }
-    public function review(
+    public function assign(
         Household $household
     ): Response {
         while (true) {
             $transaction = Transaction::query()
                 ->where('household_id', $household->id)
                 ->whereNull('category_id')
+                ->whereNull('deferred_at')
                 ->orderBy('transaction_date')
                 ->orderBy('id')
                 ->first();
@@ -64,8 +65,14 @@ class FinancialTransactionController extends Controller
 
             $category = Category::query()
                 ->where('household_id', $household->id)
-                ->findOrFail($rule->category_id);
+                ->where('id', $rule->category_id)
+                ->first();
 
+            if (! $category) {
+                // The rule points to a category that no longer exists.
+                // Stop automatic assignment and show the transaction manually.
+                break;
+            }
             $transaction->update([
                 'category_id' => $category->id,
             ]);
@@ -78,7 +85,7 @@ class FinancialTransactionController extends Controller
             }
         }
 
-        return Inertia::render('households/transactions/assign', [
+        return Inertia::render('households/transactions/Assign', [
             'household' => $household,
 
             'transaction' => $transaction,
@@ -86,6 +93,7 @@ class FinancialTransactionController extends Controller
             'categories' => Category::query()
                 ->where('household_id', $household->id)
                 ->where('is_active', true)
+                ->where('category_type', '!=', 'heading')
                 ->orderBy('name')
                 ->get([
                     'id',
@@ -97,6 +105,25 @@ class FinancialTransactionController extends Controller
                 ->whereNull('category_id')
                 ->count(),
         ]);
+    }
+
+    public function defer(
+        Household $household,
+        Transaction $transaction
+    ): RedirectResponse {
+        abort_unless(
+            $transaction->household_id === $household->id,
+            404
+        );
+
+        $transaction->update([
+            'deferred_at' => now(),
+        ]);
+
+        return redirect()->route(
+            'households.transactions.assign',
+            $household
+        );
     }
 
     public function updateCategory(

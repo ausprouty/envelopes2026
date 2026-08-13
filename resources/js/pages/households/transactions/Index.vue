@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Upload } from '@lucide/vue';
+import { Upload, Tag, DollarSign } from '@lucide/vue';
 
 
 defineProps<{
@@ -66,12 +66,12 @@ function formatDate(date: string | null) {
                 <Link :href="`/households/${household.id}/transactions/assign`"
                     class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#477b67] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#3c6958]">
                     <Tag class="h-4 w-4" />
-                    Review
+                    Assign Transactions
                 </Link>
 
                 <Link :href="`/households/${household.id}/transactions/allocate`"
                     class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#477b67] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#3c6958]">
-                    Allocate Income
+                    <DollarSign class="h-4 w-4" />Allocate Income
                 </Link>
             </div>
         </div>

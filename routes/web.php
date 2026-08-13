@@ -127,12 +127,17 @@ Route::middleware([
             '/transactions',
             [FinancialTransactionController::class, 'index']
         )->name('transactions.index');
-        
+
         // Assign transaction to envelope
         Route::get(
             '/transactions/assign',
             [FinancialTransactionController::class, 'assign']
-        )->name('transactions.assign ');
+        )->name('transactions.assign');
+
+        Route::post(
+            '/transactions/{transaction}/defer',
+            [FinancialTransactionController::class, 'defer']
+        )->name('transactions.defer');
 
         // Transaction import routes
         Route::get(

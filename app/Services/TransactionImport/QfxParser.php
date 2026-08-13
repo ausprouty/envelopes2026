@@ -23,6 +23,15 @@ class QfxParser
         );
 
         foreach ($matches[1] as $transactionBlock) {
+            $memo = $this->getTagValue(
+                $transactionBlock,
+                'MEMO'
+            );
+
+            $name = $this->getTagValue(
+                $transactionBlock,
+                'NAME'
+            );
             $transactions[] = [
                 'transaction_date' => $this->parseDate(
                     $this->getTagValue($transactionBlock, 'DTPOSTED')
@@ -32,15 +41,9 @@ class QfxParser
                     $this->getTagValue($transactionBlock, 'TRNAMT')
                 ),
 
-                'payee' => $this->getTagValue(
-                    $transactionBlock,
-                    'NAME'
-                ),
+                'payee' => $memo ?: $name,
 
-                'description' => $this->getTagValue(
-                    $transactionBlock,
-                    'MEMO'
-                ),
+                'description' => null, // the user will fill this in
 
                 'external_id' => $this->getTagValue(
                     $transactionBlock,

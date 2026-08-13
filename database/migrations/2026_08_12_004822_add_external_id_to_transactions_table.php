@@ -8,26 +8,21 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('transactions', function (Blueprint $table) {
-            $table->string('external_id')
-                ->nullable()
-                ->after('comment');
-
-            $table->unique(
-                ['financial_account_id', 'external_id'],
-                'transactions_account_external_id_unique'
-            );
-        });
+        if (! Schema::hasColumn('transactions', 'external_id')) {
+            Schema::table('transactions', function (Blueprint $table) {
+                $table->string('external_id')
+                    ->nullable()
+                    ->after('comment');
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('transactions', function (Blueprint $table) {
-            $table->dropUnique(
-                'transactions_account_external_id_unique'
-            );
-
-            $table->dropColumn('external_id');
-        });
+        if (Schema::hasColumn('transactions', 'external_id')) {
+            Schema::table('transactions', function (Blueprint $table) {
+                $table->dropColumn('external_id');
+            });
+        }
     }
 };

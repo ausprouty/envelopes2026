@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { Check, Tag } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
+
 
 const props = defineProps<{
     household: {
@@ -15,6 +16,7 @@ const props = defineProps<{
         payee: string | null;
         amount: number | string;
         currency: string;
+        description: string | null;
     } | null;
 
     categories: Array<{
@@ -36,6 +38,26 @@ const categoryId = ref<number | ''>('');
 const always = ref(false);
 const matchText = ref('');
 const saving = ref(false);
+
+const description = ref(
+    props.transaction?.description ?? ''
+);
+
+watch(
+    () => props.transaction?.id,
+    () => {
+        description.value = props.transaction?.description ?? '';
+    }
+);
+const doLater = () => {
+    if (!props.transaction) {
+        return;
+    }
+
+    router.post(
+        `/households/${props.household.id}/transactions/${props.transaction.id}/defer`,
+    );
+};
 
 const amount = computed(() => {
     if (!props.transaction) {
@@ -127,7 +149,7 @@ function saveAndNext() {
 
                 <div>
                     <h1 class="text-2xl font-semibold">
-                        Review Transactions
+                        Assign Transactions
                     </h1>
 
                     <p class="mt-1 text-sm text-muted-foreground">
@@ -158,6 +180,14 @@ function saveAndNext() {
                     {{ transaction.currency }}
                     {{ amount }}
                 </div>
+            </div>
+            <div class="mt-5">
+                <label for="description" class="mb-2 block text-sm font-medium">
+                    Description
+                </label>
+
+                <input id="description" v-model="description" type="text" placeholder="Add a description"
+                    class="w-full rounded-lg border px-4 py-3" />
             </div>
 
             <div class="space-y-5 pt-5">
@@ -198,20 +228,28 @@ function saveAndNext() {
                     </p>
                 </div>
 
-                <button type="button" :disabled="!categoryId || saving"
-                    class="inline-flex items-center gap-2 rounded-md bg-[#477b67] px-5 py-2.5 font-medium text-white disabled:opacity-50"
-                    @click="saveAndNext">
-                    <Check class="h-4 w-4" />
 
-                    {{
-                        saving
-                            ? 'Saving...'
-                            : 'Save & Next'
-                    }}
-                </button>
+                <div class="flex items-center gap-3">
+                    <button type="button" :disabled="!categoryId || saving"
+                        class="inline-flex items-center gap-2 rounded-md bg-[#477b67] px-5 py-2.5 font-medium text-white disabled:opacity-50"
+                        @click="saveAndNext">
+                        <Check class="h-4 w-4" />
+
+                        {{
+                            saving
+                                ? 'Saving...'
+                                : 'Save & Next'
+                        }}
+                    </button>
+
+                    <button type="button"
+                        class="rounded-md border px-5 py-2.5 font-medium text-muted-foreground hover:bg-muted"
+                        @click="doLater">
+                        Do Later
+                    </button>
+                </div>
             </div>
         </div>
-
         <div v-else class="rounded-2xl border bg-white p-10 text-center">
             <div class="text-xl font-semibold">
                 All caught up

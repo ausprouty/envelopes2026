@@ -21,6 +21,7 @@ class Transaction extends Model
         'import_source',
         'import_hash',
         'comment',
+        'deferred_at',
     ];
 
     protected function casts(): array
