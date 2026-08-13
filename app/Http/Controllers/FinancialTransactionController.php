@@ -78,7 +78,7 @@ class FinancialTransactionController extends Controller
             }
         }
 
-        return Inertia::render('households/transactions/Review', [
+        return Inertia::render('households/transactions/assign', [
             'household' => $household,
 
             'transaction' => $transaction,

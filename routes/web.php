@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FinancialAccountController;
 use App\Http\Controllers\FinancialTransactionController;
 use App\Http\Controllers\IncomeAllocationController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TransactionImportController;
 use Illuminate\Support\Facades\Route;
 
@@ -118,11 +119,20 @@ Route::middleware([
             [IncomeAllocationController::class, 'saveDefaults']
         )->name('income-allocations.defaults.store');
 
+        Route::get('/reports', [ReportController::class, 'index'])
+            ->name('reports.index');
+
         // Financial transaction routes
         Route::get(
             '/transactions',
             [FinancialTransactionController::class, 'index']
         )->name('transactions.index');
+        
+        // Assign transaction to envelope
+        Route::get(
+            '/transactions/assign',
+            [FinancialTransactionController::class, 'assign']
+        )->name('transactions.assign ');
 
         // Transaction import routes
         Route::get(
@@ -136,9 +146,9 @@ Route::middleware([
         )->name('transactions.import.check-duplicates');
 
         Route::post(
-            '/transactions/import/qfx/preview',
-            [TransactionImportController::class, 'previewQfx']
-        )->name('transactions.import.qfx.preview');
+            '/transactions/import/ofx/preview',
+            [TransactionImportController::class, 'previewOfx']
+        )->name('transactions.import.ofx.preview');
 
         Route::post(
             '/transactions/import/store',
@@ -149,11 +159,6 @@ Route::middleware([
             '/transactions/{transaction}/category',
             [FinancialTransactionController::class, 'updateCategory']
         )->name('transactions.category.update');
-
-        Route::get(
-            '/transactions/review',
-            [FinancialTransactionController::class, 'review']
-        )->name('transactions.review');
     });
 
 require __DIR__ . '/settings.php';

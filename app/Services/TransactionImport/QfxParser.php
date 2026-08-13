@@ -28,9 +28,8 @@ class QfxParser
                     $this->getTagValue($transactionBlock, 'DTPOSTED')
                 ),
 
-                'amount' => (float) $this->getTagValue(
-                    $transactionBlock,
-                    'TRNAMT'
+                'amount' => $this->parseAmount(
+                    $this->getTagValue($transactionBlock, 'TRNAMT')
                 ),
 
                 'payee' => $this->getTagValue(
@@ -76,6 +75,19 @@ class QfxParser
         }
 
         return null;
+    }
+
+    private function parseAmount(?string $value): ?float
+    {
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
+
+        $value = str_replace(' ', '', trim($value));
+
+        return is_numeric($value)
+            ? (float) $value
+            : null;
     }
 
     private function parseDate(?string $value): ?string

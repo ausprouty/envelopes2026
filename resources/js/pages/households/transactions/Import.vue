@@ -32,31 +32,31 @@ const props = defineProps<{
 }>();
 
 
-const importType = ref<'csv' | 'qfx'>('csv');
+const importType = ref<'csv' | 'ofx'>('csv');
 
-const qfxForm = useForm({
+const ofxForm = useForm({
     financial_account_id: '',
-    qfx_file: null as File | null,
+    ofx_file: null as File | null,
 });
 
 const selectQfxFile = (event: Event) => {
     const input = event.target as HTMLInputElement;
 
-    qfxForm.qfx_file = input.files?.[0] ?? null;
+    ofxForm.ofx_file = input.files?.[0] ?? null;
 };
 
 const submitQfx = async () => {
     errorMessage.value = '';
     preview.value = [];
 
-    if (!qfxForm.financial_account_id) {
+    if (!ofxForm.financial_account_id) {
         errorMessage.value = 'Please select an account.';
 
         return;
     }
 
-    if (!qfxForm.qfx_file) {
-        errorMessage.value = 'Please select a QFX file.';
+    if (!ofxForm.ofx_file) {
+        errorMessage.value = 'Please select a OFX file.';
 
         return;
     }
@@ -65,16 +65,16 @@ const submitQfx = async () => {
 
     formData.append(
         'financial_account_id',
-        String(qfxForm.financial_account_id)
+        String(ofxForm.financial_account_id)
     );
 
     formData.append(
-        'qfx_file',
-        qfxForm.qfx_file
+        'ofx_file',
+        ofxForm.ofx_file
     );
 
     const response = await fetch(
-        `/households/${props.household.id}/transactions/import/qfx/preview`,
+        `/households/${props.household.id}/transactions/import/ofx/preview`,
         {
             method: 'POST',
             headers: {
@@ -91,10 +91,10 @@ const submitQfx = async () => {
     if (!response.ok) {
         const errorData = await response.json();
 
-        console.log('QFX upload error:', errorData);
+        console.log('OFX upload error:', errorData);
 
         errorMessage.value =
-            errorData.message ?? 'Unable to read the QFX file.';
+            errorData.message ?? 'Unable to read the OFX file.';
 
         return;
     }
@@ -115,7 +115,7 @@ const submitQfx = async () => {
     );
 
     financialAccountId.value =
-        Number(qfxForm.financial_account_id);
+        Number(ofxForm.financial_account_id);
 
     await checkDuplicates();
 
@@ -539,16 +539,16 @@ async function importTransactions() {
                     </div>
                 </button>
 
-                <button type="button" class="rounded-xl border p-5 text-left transition" :class="importType === 'qfx'
+                <button type="button" class="rounded-xl border p-5 text-left transition" :class="importType === 'ofx'
                     ? 'border-[#477b67] bg-[#477b67]/5 ring-2 ring-[#477b67]/20'
                     : 'border-gray-200 bg-white hover:border-gray-300'
-                    " @click="importType = 'qfx'">
+                    " @click="importType = 'ofx'">
                     <div class="text-base font-semibold text-gray-900">
-                        QFX Import
+                        OFX Import
                     </div>
 
                     <div class="mt-1 text-sm text-gray-500">
-                        Upload a QFX file downloaded from your bank.
+                        Upload a OFX, QFX or QBO file downloaded from your bank.
                     </div>
                 </button>
             </div>
@@ -625,11 +625,11 @@ async function importTransactions() {
         <div v-else class="rounded-xl border">
             <div class="px-6 py-4">
                 <div class="font-medium">
-                    QFX Import
+                    OFX Import
                 </div>
 
                 <div class="mt-1 text-sm text-muted-foreground">
-                    Upload a QFX file downloaded from your bank.
+                    Upload a OFX file downloaded from your bank.
                 </div>
             </div>
 
@@ -641,7 +641,7 @@ async function importTransactions() {
                             Account
                         </label>
 
-                        <select id="financial_account_id" v-model="qfxForm.financial_account_id"
+                        <select id="financial_account_id" v-model="ofxForm.financial_account_id"
                             class="w-full rounded-md border px-3 py-2">
                             <option value="">
                                 Select an account
@@ -654,17 +654,17 @@ async function importTransactions() {
                     </div>
 
                     <div>
-                        <label for="qfx_file" class="mb-2 block text-sm font-medium">
-                            QFX File
+                        <label for="ofx_file" class="mb-2 block text-sm font-medium">
+                            OFX File
                         </label>
 
-                        <input id="qfx_file" type="file" accept=".qfx" class="block w-full rounded-md border px-3 py-2"
-                            @change="selectQfxFile" />
+                        <input id="ofx_file" type="file" accept=".qfx,.qbo,.ofx,.txt"
+                            class="block w-full rounded-md border px-3 py-2" @change="selectQfxFile" />
                     </div>
 
                     <button type="submit"
                         class="rounded-md bg-[#477b67] px-4 py-2 font-medium text-white hover:opacity-90"
-                        :disabled="qfxForm.processing">
+                        :disabled="ofxForm.processing">
                         Preview Transactions
                     </button>
                 </form>
@@ -706,7 +706,7 @@ async function importTransactions() {
                     <thead class="border-b bg-muted">
                         <tr>
                             <th class="p-3 text-left">Date</th>
-                            <th class="p-3 text-left">Description</th>
+                            <th class="p-3 text-left">Payee</th>
                             <th class="p-3 text-right">Amount</th>
                             <th class="p-3 text-left">Status</th>
                         </tr>
@@ -719,15 +719,19 @@ async function importTransactions() {
                             </td>
 
                             <td class="p-3">
-                                {{ transaction.description }}
+                                {{ transaction.payee }}
                             </td>
 
                             <td class="whitespace-nowrap p-3 text-right" :class="transaction.amount < 0
                                 ? 'text-red-600'
                                 : 'text-emerald-700'
                                 ">
-                                {{ transaction.amount.toFixed(2) }}
-                                {{ transaction.currency }}
+                                {{
+                                    new Intl.NumberFormat('en-AU', {
+                                        style: 'currency',
+                                        currency: transaction.currency || 'AUD',
+                                    }).format(Number(transaction.amount))
+                                }}
                             </td>
                             <td class="p-3">
                                 <span v-if="transaction.status === 'new'" class="font-medium text-emerald-700">

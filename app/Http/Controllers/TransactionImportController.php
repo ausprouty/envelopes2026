@@ -244,7 +244,7 @@ class TransactionImportController extends Controller
         ]);
     }
 
-    public function previewQfx(
+    public function previewOfx(
         Request $request,
         Household $household,
         QfxParser $qfxParser
@@ -255,10 +255,10 @@ class TransactionImportController extends Controller
                 'integer',
                 'exists:financial_accounts,id',
             ],
-            'qfx_file' => [
+            'ofx_file' => [
                 'required',
                 'file',
-                'extensions:qfx,txt',
+                'extensions:qfx,qbo,ofx,txt',
                 'max:10240',
             ],
         ]);
@@ -268,7 +268,7 @@ class TransactionImportController extends Controller
             ->findOrFail($validated['financial_account_id']);
 
         $contents = file_get_contents(
-            $request->file('qfx_file')->getRealPath()
+            $request->file('ofx_file')->getRealPath()
         );
 
         $transactions = $qfxParser->parse($contents);
@@ -407,7 +407,7 @@ class TransactionImportController extends Controller
         ]);
     }
 
-// Private methods
+    // Private methods
 
     private function accounts(Household $household)
     {
@@ -501,7 +501,7 @@ class TransactionImportController extends Controller
             : null;
     }
 
-     private function parseCsv(string $csv): array
+    private function parseCsv(string $csv): array
     {
         $lines = preg_split('/\r\n|\r|\n/', trim($csv));
 

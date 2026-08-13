@@ -25,6 +25,13 @@ const props = defineProps<{
     remaining: number;
 }>();
 
+const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
+};
 const categoryId = ref<number | ''>('');
 const always = ref(false);
 const matchText = ref('');
@@ -137,7 +144,7 @@ function saveAndNext() {
         <div v-if="transaction" class="rounded-2xl border bg-white p-6 shadow-sm">
             <div class="border-b pb-5">
                 <div class="text-sm text-gray-500">
-                    {{ transaction.transaction_date }}
+                    {{ formatDate(transaction.transaction_date) }}
                 </div>
 
                 <div class="mt-2 text-xl font-semibold text-gray-900">
@@ -145,8 +152,8 @@ function saveAndNext() {
                 </div>
 
                 <div class="mt-3 text-3xl font-semibold" :class="Number(transaction.amount) < 0
-                        ? 'text-red-600'
-                        : 'text-emerald-700'
+                    ? 'text-red-600'
+                    : 'text-emerald-700'
                     ">
                     {{ transaction.currency }}
                     {{ amount }}

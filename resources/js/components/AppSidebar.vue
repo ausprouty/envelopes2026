@@ -3,10 +3,13 @@ import { Link, usePage } from '@inertiajs/vue3';
 import {
     BookOpen,
     FolderGit2,
+    Users,
+    ChartNoAxesColumn,
+    CircleDollarSign,
     LayoutGrid,
     ReceiptText,
     Tags,
-    Users,
+    Upload,
     WalletCards,
 } from '@lucide/vue';
 import { computed } from 'vue';
@@ -63,10 +66,10 @@ const dashboardUrl = computed(() => {
         : '#';
 });
 
-const mainNavItems = computed<NavItem[]>(() => {
+const dashboardNavItems = computed<NavItem[]>(() => {
     const id = householdId.value;
 
-    const items: NavItem[] = [
+    return [
         {
             title: 'Dashboard',
             href: id
@@ -75,29 +78,74 @@ const mainNavItems = computed<NavItem[]>(() => {
             icon: LayoutGrid,
         },
     ];
+});
 
-    if (id) {
-        items.push(
-            {
-                title: 'Transactions',
-                href: `/households/${id}/transactions`,
-                icon: ReceiptText,
-            },
-            {
-                title: 'Accounts',
-                href: `/households/${id}/accounts`,
-                icon: WalletCards,
-            },
+const taskNavItems = computed<NavItem[]>(() => {
+    const id = householdId.value;
 
-            {
-                title: 'Categories',
-                href: `/households/${id}/categories`,
-                icon: Tags,
-            },
-        );
+    if (!id) {
+        return [];
     }
 
-    return items;
+    return [
+        {
+            title: 'Allocate Income',
+            href: `/households/${id}/income-allocations/create`,
+            icon: CircleDollarSign,
+        },
+        {
+            title: 'Assign Transactions',
+            href: `/households/${id}/transactions/assign`,
+            icon: Tags,
+        },
+        {
+            title: 'Import Transactions',
+            href: `/households/${id}/transactions/import`,
+            icon: Upload,
+        },
+    ];
+});
+
+const dataNavItems = computed<NavItem[]>(() => {
+    const id = householdId.value;
+
+    if (!id) {
+        return [];
+    }
+
+    return [
+        {
+            title: 'Accounts',
+            href: `/households/${id}/accounts`,
+            icon: WalletCards,
+        },
+        {
+            title: 'Categories',
+            href: `/households/${id}/categories`,
+            icon: Tags,
+        },
+        {
+            title: 'Transactions',
+            href: `/households/${id}/transactions`,
+            icon: ReceiptText,
+        },
+    ];
+});
+
+const reportNavItems = computed<NavItem[]>(() => {
+    const id = householdId.value;
+
+    if (!id) {
+        return [];
+    }
+
+    return [
+        {
+            title: 'Reports',
+            href: `/households/${id}/reports`,
+            icon: ChartNoAxesColumn,
+        },
+    ];
 });
 const adminNavItems: NavItem[] = [
     {
@@ -133,7 +181,25 @@ const adminNavItems: NavItem[] = [
         </SidebarHeader>
 
         <SidebarContent>
-            <NavMain :items="mainNavItems" />
+            <NavMain :items="dashboardNavItems" />
+
+            <div class="px-3 pt-3 pb-1 text-xs font-medium text-muted-foreground">
+                Tasks
+            </div>
+
+            <NavMain :items="taskNavItems" />
+
+            <div class="px-3 pt-3 pb-1 text-xs font-medium text-muted-foreground">
+                Data
+            </div>
+
+            <NavMain :items="dataNavItems" />
+
+            <div class="px-3 pt-3 pb-1 text-xs font-medium text-muted-foreground">
+                Reports
+            </div>
+
+            <NavMain :items="reportNavItems" />
         </SidebarContent>
 
         <SidebarFooter>
