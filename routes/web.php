@@ -164,6 +164,11 @@ Route::middleware([
             '/transactions/{transaction}/category',
             [FinancialTransactionController::class, 'updateCategory']
         )->name('transactions.category.update');
+
+        Route::post(
+            '/transactions/{transaction}/split',
+            [FinancialTransactionController::class, 'split']
+        )->name('transactions.split');
     });
 
 require __DIR__ . '/settings.php';

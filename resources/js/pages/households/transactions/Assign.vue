@@ -1,15 +1,21 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, Link } from '@inertiajs/vue3';
 import { Check, Tag } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
+type SplitRow = {
+    type: 'category' | 'cash';
+    category_id: number | null;
+    financial_account_id: number | null;
+    amount: string;
+    description: string;
+};
 
 const props = defineProps<{
     household: {
         id: number;
         household_name: string;
     };
-
     transaction: {
         id: number;
         transaction_date: string;
@@ -23,9 +29,80 @@ const props = defineProps<{
         id: number;
         name: string;
     }>;
+    accounts: {
+        id: number;
+        account_name: string;
+        currency: string;
+    }[];
 
     remaining: number;
+    deferred: number;
+    showDeferred: boolean;
 }>();
+
+const splitting = ref(false);
+
+const splitRows = ref<SplitRow[]>([
+    {
+        type: 'category',
+        category_id: null,
+        financial_account_id: null,
+        amount: '',
+        description: '',
+    },
+    {
+        type: 'category',
+        category_id: null,
+        financial_account_id: null,
+        amount: '',
+        description: '',
+    },
+]);
+
+const addSplitRow = () => {
+    splitRows.value.push({
+        type: 'category',
+        category_id: null,
+        financial_account_id: null,
+        amount: '',
+        description: '',
+    });
+};
+const removeSplitRow = (index: number) => {
+    splitRows.value.splice(index, 1);
+};
+
+const splitTotal = computed(() => {
+    return splitRows.value.reduce((total, row) => {
+        return total + (Number(row.amount) || 0);
+    }, 0);
+});
+const saveSplit = () => {
+    if (!props.transaction || !splitBalanced.value) {
+        return;
+    }
+
+    router.post(
+        `/households/${props.household.id}/transactions/${props.transaction.id}/split`,
+        {
+            splits: splitRows.value,
+        },
+    );
+};
+
+const transactionAmount = computed(() => {
+    return Math.abs(Number(props.transaction?.amount ?? 0));
+});
+
+const splitRemaining = computed(() => {
+    return transactionAmount.value - splitTotal.value;
+});
+
+const splitBalanced = computed(() => {
+    return Math.abs(splitRemaining.value) < 0.005;
+});
+
+
 
 const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('en-US', {
@@ -159,7 +236,7 @@ function saveAndNext() {
             </div>
 
             <div class="rounded-full bg-muted px-3 py-1 text-sm text-muted-foreground">
-                {{ remaining }} remaining
+                {{ showDeferred ? `${deferred} deferred` : `${remaining} remaining` }}
             </div>
         </div>
 
@@ -244,20 +321,117 @@ function saveAndNext() {
 
                     <button type="button"
                         class="rounded-md border px-5 py-2.5 font-medium text-muted-foreground hover:bg-muted"
+                        @click="splitting = !splitting">
+                        Split Transaction
+                    </button>
+
+                    <button type="button"
+                        class="rounded-md border px-5 py-2.5 font-medium text-muted-foreground hover:bg-muted"
                         @click="doLater">
                         Do Later
+                    </button>
+                </div>
+                <div v-if="splitting" class="mt-6 rounded-xl border p-4">
+                    <div class="mb-4 text-lg font-semibold">
+                        Split Transaction
+                    </div>
+
+                    <div v-for="(row, index) in splitRows" :key="index"
+                        class="mb-3 grid gap-3 md:grid-cols-[1fr_140px_1fr_auto]">
+                        <div class="grid gap-2">
+                            <select v-model="row.type" class="rounded-lg border px-3 py-2">
+                                <option value="category">
+                                    Category
+                                </option>
+
+                                <option value="cash">
+                                    Cash Out
+                                </option>
+                            </select>
+
+                            <select v-if="row.type === 'category'" v-model="row.category_id"
+                                class="rounded-lg border px-3 py-2">
+                                <option :value="null">
+                                    Select category
+                                </option>
+
+                                <option v-for="category in categories" :key="category.id" :value="category.id">
+                                    {{ category.name }}
+                                </option>
+                            </select>
+
+                            <select v-else v-model="row.financial_account_id" class="rounded-lg border px-3 py-2">
+                                <option :value="null">
+                                    Select cash account
+                                </option>
+
+                                <option v-for="account in accounts" :key="account.id" :value="account.id">
+                                    {{ account.account_name }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <input v-model="row.amount" type="number" step="0.01" min="0" placeholder="Amount"
+                            class="rounded-lg border px-3 py-2" />
+
+                        <input v-model="row.description" type="text" placeholder="Description"
+                            class="rounded-lg border px-3 py-2" />
+
+                        <button type="button" class="px-3 text-sm text-muted-foreground" @click="removeSplitRow(index)">
+                            Remove
+                        </button>
+                    </div>
+
+                    <button type="button" class="mb-5 text-sm font-medium text-[#477b67]" @click="addSplitRow">
+                        + Add another split
+                    </button>
+
+                    <div class="space-y-1 border-t pt-4 text-sm">
+                        <div class="flex justify-between">
+                            <span>Transaction</span>
+                            <span>
+                                {{ transactionAmount.toFixed(2) }}
+                            </span>
+                        </div>
+
+                        <div class="flex justify-between">
+                            <span>Assigned</span>
+                            <span>
+                                {{ splitTotal.toFixed(2) }}
+                            </span>
+                        </div>
+
+                        <div class="flex justify-between font-semibold">
+                            <span>Remaining</span>
+                            <span>
+                                {{ splitRemaining.toFixed(2) }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <button type="button" :disabled="!splitBalanced"
+                        class="mt-5 rounded-md bg-[#477b67] px-5 py-2.5 font-medium text-white disabled:opacity-40"
+                        @click="saveSplit">
+                        Save Split
                     </button>
                 </div>
             </div>
         </div>
         <div v-else class="rounded-2xl border bg-white p-10 text-center">
-            <div class="text-xl font-semibold">
-                All caught up
-            </div>
+            <template v-if="remaining > 0">
+                <div class="text-xl font-semibold">
+                    {{ remaining }} transactions still need attention
+                </div>
 
-            <p class="mt-2 text-sm text-muted-foreground">
-                There are no uncategorized transactions left.
-            </p>
+                <p class="mt-2 text-sm text-muted-foreground">
+                    These transactions were marked Do Later.
+                </p>
+
+                <Link :href="`/households/${household.id}/transactions/assign?deferred=1`"
+                    class="mt-5 inline-flex rounded-md bg-[#477b67] px-5 py-2.5 font-medium text-white">
+                    Work on Deferred Transactions
+                </Link>
+            </template>
         </div>
     </div>
 </template>

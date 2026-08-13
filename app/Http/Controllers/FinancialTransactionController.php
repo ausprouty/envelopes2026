@@ -3,52 +3,48 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\FinancialAccount;
 use App\Models\Household;
 use App\Models\Transaction;
 use App\Models\TransactionCategoryRule;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class FinancialTransactionController extends Controller
 {
-    public function index(
+
+    public function assign(
         Request $request,
         Household $household
     ): Response {
-        // We'll use the same household authorization pattern
-        // as the accounts controller.
-
-
-        $transactions = Transaction::query()
-            ->where('household_id', $household->id)
-            ->with([
-                'financialAccount',
-                'category',
-            ])
-            ->orderByDesc('transaction_date')
-            ->orderByDesc('id')
-            ->get();
-
-        return Inertia::render('households/transactions/Index', [
-            'household' => $household,
-            'transactions' => $transactions,
-        ]);
-    }
-    public function assign(
-        Household $household
-    ): Response {
+        $showDeferred = $request->boolean('deferred');
         while (true) {
             $transaction = Transaction::query()
                 ->where('household_id', $household->id)
                 ->whereNull('category_id')
-                ->whereNull('deferred_at')
-                ->orderBy('transaction_date')
-                ->orderBy('id')
+                ->whereDoesntHave('splits')
+                ->when(
+                    $showDeferred,
+                    fn($query) => $query->whereNotNull('deferred_at'),
+                    fn($query) => $query->whereNull('deferred_at')
+                )
+                ->when(
+                    $showDeferred,
+                    fn($query) => $query
+                        ->orderBy('deferred_at')
+                        ->orderBy('id'),
+                    fn($query) => $query
+                        ->orderBy('transaction_date')
+                        ->orderBy('id')
+                )
                 ->first();
+
 
             if (! $transaction) {
                 break;
@@ -87,8 +83,9 @@ class FinancialTransactionController extends Controller
 
         return Inertia::render('households/transactions/Assign', [
             'household' => $household,
-
+            'showDeferred' => $showDeferred,
             'transaction' => $transaction,
+
 
             'categories' => Category::query()
                 ->where('household_id', $household->id)
@@ -103,7 +100,26 @@ class FinancialTransactionController extends Controller
             'remaining' => Transaction::query()
                 ->where('household_id', $household->id)
                 ->whereNull('category_id')
+                ->whereDoesntHave('splits')
                 ->count(),
+
+            'deferred' => Transaction::query()
+                ->where('household_id', $household->id)
+                ->whereNull('category_id')
+                ->whereDoesntHave('splits')
+                ->whereNotNull('deferred_at')
+                ->count(),
+
+            'accounts' => FinancialAccount::query()
+                ->where('household_id', $household->id)
+                ->where('is_active', true)
+                ->where('account_type', 'cash')
+                ->orderBy('account_name')
+                ->get([
+                    'id',
+                    'account_name',
+                    'currency',
+                ]),
         ]);
     }
 
@@ -119,6 +135,149 @@ class FinancialTransactionController extends Controller
         $transaction->update([
             'deferred_at' => now(),
         ]);
+
+        return redirect()->route(
+            'households.transactions.assign',
+            $household
+        );
+    }
+
+    public function index(
+        Request $request,
+        Household $household
+    ): Response {
+        // We'll use the same household authorization pattern
+        // as the accounts controller.
+
+
+        $transactions = Transaction::query()
+            ->where('household_id', $household->id)
+            ->with([
+                'financialAccount',
+                'category',
+            ])
+            ->orderByDesc('transaction_date')
+            ->orderByDesc('id')
+            ->get();
+
+        return Inertia::render('households/transactions/Index', [
+            'household' => $household,
+            'transactions' => $transactions,
+        ]);
+    }
+
+    public function split(
+        Request $request,
+        Household $household,
+        Transaction $transaction
+    ): RedirectResponse {
+        abort_unless(
+            $transaction->household_id === $household->id,
+            404
+        );
+
+        $validated = $request->validate([
+            'splits' => ['required', 'array', 'min:2'],
+
+            'splits.*.type' => [
+                'required',
+                'in:category,cash',
+            ],
+
+            'splits.*.category_id' => [
+                'nullable',
+                'integer',
+            ],
+
+            'splits.*.financial_account_id' => [
+                'nullable',
+                'integer',
+            ],
+
+            'splits.*.amount' => [
+                'required',
+                'numeric',
+                'min:0.01',
+            ],
+
+            'splits.*.description' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+        ]);
+
+        $splitTotal = collect($validated['splits'])
+            ->sum(fn($split) => (float) $split['amount']);
+
+        $transactionAmount = abs((float) $transaction->amount);
+
+        if (abs($splitTotal - $transactionAmount) > 0.005) {
+            throw ValidationException::withMessages([
+                'splits' => 'The split amounts must equal the transaction amount.',
+            ]);
+        }
+
+        DB::transaction(function () use (
+            $validated,
+            $transaction,
+            $household
+        ) {
+            foreach ($validated['splits'] as $split) {
+
+                $signedAmount = $transaction->amount < 0
+                    ? -abs((float) $split['amount'])
+                    : abs((float) $split['amount']);
+
+                if ($split['type'] === 'category') {
+                    $category = Category::query()
+                        ->where('household_id', $household->id)
+                        ->where('id', $split['category_id'])
+                        ->where('category_type', '!=', 'heading')
+                        ->first();
+                    if (! $category) {
+                        dd('Category not found', $split);
+                    }
+
+                    $transaction->splits()->create([
+                        'category_id' => $category->id,
+                        'financial_account_id' => null,
+                        'amount' => $signedAmount,
+                        'description' => $split['description'] ?? null,
+                    ]);
+
+                    if ($category->tracks_balance) {
+                        $category->increment(
+                            'current_balance',
+                            $signedAmount
+                        );
+                    }
+                }
+
+                if ($split['type'] === 'cash') {
+                    $cashAccount = FinancialAccount::query()
+                        ->where('household_id', $household->id)
+                        ->where('id', $split['financial_account_id'])
+                        ->where('account_type', 'cash')
+                        ->first();
+
+                    if (! $cashAccount) {
+                        dd('Cash account not found', $split);
+                    }
+
+                    $transaction->splits()->create([
+                        'category_id' => null,
+                        'financial_account_id' => $cashAccount->id,
+                        'amount' => $signedAmount,
+                        'description' => $split['description'] ?? 'Cash out',
+                    ]);
+                }
+            }
+
+            $transaction->update([
+                'deferred_at' => null,
+            ]);
+        });
 
         return redirect()->route(
             'households.transactions.assign',

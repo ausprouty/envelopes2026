@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Transaction extends Model
 {
@@ -32,19 +33,24 @@ class Transaction extends Model
             'amount' => 'decimal:2',
         ];
     }
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+    public function financialAccount(): BelongsTo
+    {
+        return $this->belongsTo(FinancialAccount::class);
+    }
 
     public function household(): BelongsTo
     {
         return $this->belongsTo(Household::class);
     }
 
-    public function financialAccount(): BelongsTo
-    {
-        return $this->belongsTo(FinancialAccount::class);
-    }
 
-    public function category(): BelongsTo
+
+    public function splits(): HasMany
     {
-        return $this->belongsTo(Category::class);
+        return $this->hasMany(TransactionSplit::class);
     }
 }
