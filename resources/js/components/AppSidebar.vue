@@ -11,6 +11,7 @@ import {
     Tags,
     Upload,
     WalletCards,
+    ArrowRightLeft,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
@@ -102,6 +103,11 @@ const taskNavItems = computed<NavItem[]>(() => {
             title: 'Import Transactions',
             href: `/households/${id}/transactions/import`,
             icon: Upload,
+        },
+        {
+            title: 'Move Between Envelopes',
+            href: `/households/${id}/category-transfers/create`,
+            icon: ArrowRightLeft,
         },
     ];
 });

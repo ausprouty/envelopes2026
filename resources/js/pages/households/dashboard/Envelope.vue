@@ -18,6 +18,7 @@ interface Envelope {
     image: string | null;
     current_balance: number;
     spent_this_month: number;
+    context: string;
 }
 
 interface Transaction {
@@ -60,11 +61,17 @@ const shortDate = (date: string) => {
     <Head :title="envelope.name" />
 
     <div class="p-4 sm:p-6">
-        <!-- Back -->
-        <div class="mb-5">
-            <Link :href="`/households/${household.id}/dashboard`"
-                class="inline-flex items-center gap-2 text-sm font-medium text-[#477b67] hover:underline">
+        <!-- Back navigation -->
+        <div class="mb-5 flex items-center gap-2 text-sm font-medium text-[#477b67]">
+            <Link :href="`/households/${household.id}/reports/category-balances?context=${envelope.context}`"
+                class="inline-flex items-center gap-1 hover:underline">
                 <ArrowLeft class="h-4 w-4" />
+                Category Balances
+            </Link>
+
+            <span class="text-gray-400">•</span>
+
+            <Link :href="`/households/${household.id}/dashboard?context=${envelope.context}`" class="hover:underline">
                 Dashboard
             </Link>
         </div>
@@ -138,7 +145,7 @@ const shortDate = (date: string) => {
         <div class="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
             <div class="border-b border-gray-100 px-5 py-4 sm:px-6">
                 <h2 class="text-lg font-semibold text-gray-900">
-                    Recent Transactions
+                    Recent Transactions and Transfers
                 </h2>
 
                 <div class="mt-1 text-sm text-gray-500">

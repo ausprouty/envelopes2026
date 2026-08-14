@@ -26,7 +26,34 @@ defineProps<{
     }>;
 }>();
 
+function transactionRowClass(transaction: {
+    category: {
+        name: string;
+        context?: string;
+        category_type?: string;
+    } | null;
+}) {
+    if (transaction.category?.category_type === 'income') {
+        return 'bg-[#e8f1fa]';
+    }
 
+    if (transaction.category?.category_type === 'transfer') {
+        return 'bg-[#f3f4f6]';
+    }
+
+    if (transaction.category?.context === 'ministry_au') {
+        return 'bg-[#fff3d4]';
+    }
+
+    return 'bg-[#eaf5ef]';
+}
+
+function formatAmount(amount: number | string) {
+    return Number(amount).toLocaleString('en-AU', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+}
 
 function formatDate(date: string | null) {
     if (!date) {
@@ -75,8 +102,8 @@ function formatDate(date: string | null) {
                 </Link>
             </div>
         </div>
-        <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
-            <table class="min-w-full divide-y divide-gray-200">
+        <div class="overflow-hidden rounded-xl border border-gray-300 bg-white">
+            <table class="min-w-full divide-y divide-gray-300">
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">
@@ -102,8 +129,9 @@ function formatDate(date: string | null) {
                     </tr>
                 </thead>
 
-                <tbody class="divide-y divide-gray-100 bg-white">
-                    <tr v-for="transaction in transactions" :key="transaction.id">
+                <tbody class="divide-y divide-gray-300 bg-white">
+                    <tr v-for="transaction in transactions" :key="transaction.id"
+                        :class="transactionRowClass(transaction)">
                         <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">
                             {{ formatDate(transaction.transaction_date) }}
                         </td>
@@ -113,7 +141,7 @@ function formatDate(date: string | null) {
                         </td>
                         <td class="whitespace-nowrap px-4 py-3 text-right text-sm font-medium text-gray-900">
                             {{ transaction.currency }}
-                            {{ Number(transaction.amount).toFixed(2) }}
+                            {{ formatAmount(transaction.amount) }}
                         </td>
 
                         <td class="px-4 py-3 text-sm text-gray-700">

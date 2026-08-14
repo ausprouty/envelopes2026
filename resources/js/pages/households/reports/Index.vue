@@ -1,10 +1,14 @@
 <script setup lang="ts">
+
+import { Link } from '@inertiajs/vue3';
+
 defineProps<{
     household: {
         id: number;
         household_name: string;
     };
 }>();
+
 </script>
 
 <template>
@@ -18,9 +22,15 @@ defineProps<{
         </p>
 
         <div class="mt-6 space-y-3">
-            <div class="rounded-xl border p-4">
+            <Link :href="`/households/${household.id}/reports/spending-by-category`"
+                class="block rounded-xl border border-gray-200 bg-white px-5 py-5 text-lg font-medium text-gray-900 shadow-sm transition hover:bg-gray-50">
                 Spending by Category
-            </div>
+            </Link>
+
+            <Link :href="`/households/${household.id}/reports/category-balances`"
+                class="block rounded-xl border border-gray-200 bg-white px-5 py-5 text-lg font-medium text-gray-900 shadow-sm transition hover:bg-gray-50">
+                Category Balances
+            </Link>
 
             <div class="rounded-xl border p-4">
                 Income and Expenses

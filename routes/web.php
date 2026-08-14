@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CategoryBalanceReportController;
+use App\Http\Controllers\CategoryTransferController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FinancialAccountController;
 use App\Http\Controllers\FinancialTransactionController;
@@ -90,6 +92,16 @@ Route::middleware([
         )->name('categories.update');
 
         Route::get(
+            '/category-transfers/create',
+            [CategoryTransferController::class, 'create']
+        )->name('category-transfers.create');
+
+        Route::post(
+            '/category-transfers',
+            [CategoryTransferController::class, 'store']
+        )->name('category-transfers.store');
+
+        Route::get(
             '/dashboard',
             [DashboardController::class, 'index']
         )->name('dashboard');
@@ -121,6 +133,10 @@ Route::middleware([
 
         Route::get('/reports', [ReportController::class, 'index'])
             ->name('reports.index');
+        Route::get(
+            '/reports/category-balances',
+            [CategoryBalanceReportController::class, 'index']
+        )->name('reports.category-balances');
 
         // Financial transaction routes
         Route::get(

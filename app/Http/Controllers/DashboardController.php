@@ -15,16 +15,30 @@ class DashboardController extends Controller
         Request $request,
         Household $household
     ): Response {
+        $context = $request->string('context')->toString();
+
+        if (! in_array($context, ['household', 'ministry_au'], true)) {
+            $context = 'household';
+        }
+
+        $hasAuMinistryCategories = Category::query()
+            ->where('household_id', $household->id)
+            ->where('context', 'ministry_au')
+            ->where('is_active', true)
+            ->exists();
+
         $headings = Category::query()
             ->where('household_id', $household->id)
+            ->where('context', $context)
             ->where('category_type', 'heading')
             ->where('is_active', true)
             ->orderBy('display_order')
             ->orderBy('name')
             ->get()
-            ->map(function (Category $heading) use ($household) {
+            ->map(function (Category $heading) use ($household, $context) {
                 $balance = Category::query()
                     ->where('household_id', $household->id)
+                    ->where('context', $context)
                     ->where('parent_category_id', $heading->id)
                     ->where('is_active', true)
                     ->where('tracks_balance', true)
@@ -42,6 +56,7 @@ class DashboardController extends Controller
 
         $totalAvailable = Category::query()
             ->where('household_id', $household->id)
+            ->where('context', $context)
             ->where('is_active', true)
             ->where('tracks_balance', true)
             ->where('code', '!=', 'income_pool')
@@ -49,6 +64,7 @@ class DashboardController extends Controller
 
         $watchCategories = Category::query()
             ->where('household_id', $household->id)
+            ->where('context', $context)
             ->where('is_active', true)
             ->where('tracks_balance', true)
             ->where('category_type', '!=', 'heading')
@@ -73,9 +89,16 @@ class DashboardController extends Controller
                 'household_name' => $household->household_name,
                 'default_currency' => $household->default_currency,
             ],
+
             'headings' => $headings,
+
             'totalAvailable' => (float) $totalAvailable,
+
             'watchCategories' => $watchCategories,
+
+            'dashboardContext' => $context,
+
+            'hasAuMinistryCategories' => $hasAuMinistryCategories,
         ]);
     }
 
@@ -126,45 +149,44 @@ class DashboardController extends Controller
     }
 
     public function envelope(
-    Household $household,
-    Category $category
-): Response {
-    abort_unless(
-        $category->household_id === $household->id,
-        404
-    );
+        Household $household,
+        Category $category
+    ): Response {
+        abort_unless(
+            $category->household_id === $household->id,
+            404
+        );
 
-    $transactions = Transaction::query()
-        ->where('household_id', $household->id)
-        ->where('category_id', $category->id)
-        ->orderByDesc('transaction_date')
-        ->orderByDesc('id')
-        ->limit(20)
-        ->get();
+        $transactions = Transaction::query()
+            ->where('household_id', $household->id)
+            ->where('category_id', $category->id)
+            ->orderByDesc('transaction_date')
+            ->orderByDesc('id')
+            ->limit(20)
+            ->get();
 
-    $spentThisMonth = Transaction::query()
-        ->where('household_id', $household->id)
-        ->where('category_id', $category->id)
-        ->whereBetween('transaction_date', [
-            now()->startOfMonth()->toDateString(),
-            now()->toDateString(),
-        ])
-        ->where('amount', '<', 0)
-        ->sum('amount');
+        $spentThisMonth = Transaction::query()
+            ->where('household_id', $household->id)
+            ->where('category_id', $category->id)
+            ->whereBetween('transaction_date', [
+                now()->startOfMonth()->toDateString(),
+                now()->toDateString(),
+            ])
+            ->where('amount', '<', 0)
+            ->sum('amount');
 
-    return Inertia::render('households/dashboard/Envelope', [
-        'household' => $household,
+        return Inertia::render('households/dashboard/Envelope', [
+            'household' => $household,
 
-        'envelope' => [
-            'id' => $category->id,
-            'name' => $category->name,
-            'image' => $category->dashboard_image,
-            'current_balance' => (float) $category->current_balance,
-            'spent_this_month' => abs((float) $spentThisMonth),
-        ],
+            'envelope' => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'image' => $category->dashboard_image,
+                'current_balance' => (float) $category->current_balance,
+                'spent_this_month' => abs((float) $spentThisMonth),
+            ],
 
-        'transactions' => $transactions,
-    ]);
-}
-
+            'transactions' => $transactions,
+        ]);
+    }
 }
