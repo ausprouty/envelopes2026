@@ -135,6 +135,11 @@ Route::middleware([
         )->name('transactions.assign');
 
         Route::post(
+            '/transactions/cash',
+            [FinancialTransactionController::class, 'storeCash']
+        )->name('transactions.cash.store');
+
+        Route::post(
             '/transactions/{transaction}/defer',
             [FinancialTransactionController::class, 'defer']
         )->name('transactions.defer');

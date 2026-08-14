@@ -16,13 +16,15 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-         //   HouseholdSeeder::class,
-         //   UserSeeder::class,
-         //   CategorySeeder::class,
-         //   AccountTagSeeder::class,
-         //   FinancialAccountSeeder::class,
-         //   FinancialAccountTagSeeder::class,
-          TransactionCategoryRuleSeeder::class,
+            //   HouseholdSeeder::class,
+            //   UserSeeder::class,
+            //   CategorySeeder::class,
+            //   AccountTagSeeder::class,
+            //   FinancialAccountSeeder::class,
+            //   FinancialAccountTagSeeder::class,
+            //   TransactionCategoryRuleSeeder::class,
+            MinistryCategorySeeder::class,
+
         ]);
     }
 }

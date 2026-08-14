@@ -24,6 +24,13 @@ class FinancialTransactionController extends Controller
         Household $household
     ): Response {
         $showDeferred = $request->boolean('deferred');
+
+        $hasAuMinistryCategories = Category::query()
+            ->where('household_id', $household->id)
+            ->where('context', 'ministry_au')
+            ->where('is_active', true)
+            ->exists();
+
         while (true) {
             $transaction = Transaction::query()
                 ->where('household_id', $household->id)
@@ -45,7 +52,6 @@ class FinancialTransactionController extends Controller
                 )
                 ->first();
 
-
             if (! $transaction) {
                 break;
             }
@@ -65,12 +71,24 @@ class FinancialTransactionController extends Controller
                 ->first();
 
             if (! $category) {
-                // The rule points to a category that no longer exists.
-                // Stop automatic assignment and show the transaction manually.
                 break;
             }
+
+            $gstAmount = null;
+
+            if (
+                $category->context === 'ministry_au' &&
+                $category->gst_default
+            ) {
+                $gstAmount = round(
+                    abs((float) $transaction->amount) / 11,
+                    2
+                );
+            }
+
             $transaction->update([
                 'category_id' => $category->id,
+                'gst_amount' => $gstAmount,
             ]);
 
             if ($category->tracks_balance) {
@@ -86,6 +104,7 @@ class FinancialTransactionController extends Controller
             'showDeferred' => $showDeferred,
             'transaction' => $transaction,
 
+            'hasAuMinistryCategories' => $hasAuMinistryCategories,
 
             'categories' => Category::query()
                 ->where('household_id', $household->id)
@@ -95,6 +114,8 @@ class FinancialTransactionController extends Controller
                 ->get([
                     'id',
                     'name',
+                    'context',
+                    'gst_default',
                 ]),
 
             'remaining' => Transaction::query()
@@ -285,6 +306,87 @@ class FinancialTransactionController extends Controller
         );
     }
 
+    public function storeCash(
+        Request $request,
+        Household $household
+    ): RedirectResponse {
+        $validated = $request->validate([
+            'transaction_date' => [
+                'required',
+                'date',
+            ],
+
+            'amount' => [
+                'required',
+                'numeric',
+                'gt:0',
+            ],
+
+            'payee' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'description' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'category_id' => [
+                'required',
+                'integer',
+            ],
+
+            'gst_amount' => [
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
+        ]);
+
+        $category = Category::query()
+            ->where('household_id', $household->id)
+            ->where('id', $validated['category_id'])
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        $cashAccount = FinancialAccount::query()
+            ->where('household_id', $household->id)
+            ->where('account_type', 'cash')
+            ->where('currency', 'AUD')
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        Transaction::create([
+            'household_id' => $household->id,
+            'financial_account_id' => $cashAccount->id,
+            'category_id' => $category->id,
+
+            'transaction_date' =>
+            $validated['transaction_date'],
+
+            'payee' =>
+            $validated['payee'] ?? null,
+
+            'description' =>
+            $validated['description'] ?? null,
+
+            // Spending cash is an outgoing transaction.
+            'amount' =>
+            -abs((float) $validated['amount']),
+
+            'currency' =>
+            $cashAccount->currency,
+
+            'gst_amount' =>
+            $validated['gst_amount'] ?? null,
+        ]);
+
+        return back();
+    }
+
     public function updateCategory(
         Request $request,
         Household $household,
@@ -329,6 +431,12 @@ class FinancialTransactionController extends Controller
                 'string',
                 'max:255',
             ],
+            'gst_amount' => [
+                'nullable',
+                'numeric',
+                'min:0',
+                'lte:' . abs((float) $transaction->amount),
+            ],
         ]);
 
         $oldCategoryId = $transaction->category_id;
@@ -336,6 +444,12 @@ class FinancialTransactionController extends Controller
         $newCategory = Category::query()
             ->where('household_id', $household->id)
             ->findOrFail($validated['category_id']);
+
+        $gstAmount = null;
+
+        if ($newCategory->context === 'ministry_au') {
+            $gstAmount = $validated['gst_amount'] ?? null;
+        }
 
         if ($oldCategoryId && $oldCategoryId !== $newCategory->id) {
             $oldCategory = Category::query()
@@ -357,11 +471,12 @@ class FinancialTransactionController extends Controller
                     (float) $transaction->amount
                 );
             }
-
-            $transaction->update([
-                'category_id' => $newCategory->id,
-            ]);
         }
+
+        $transaction->update([
+            'category_id' => $newCategory->id,
+            'gst_amount' => $gstAmount,
+        ]);
 
         if ($validated['always']) {
             TransactionCategoryRule::updateOrCreate(
