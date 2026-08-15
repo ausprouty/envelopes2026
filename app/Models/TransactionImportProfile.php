@@ -9,6 +9,7 @@ class TransactionImportProfile extends Model
 {
     protected $fillable = [
         'name',
+        'format',
         'header_signature',
         'date_column',
         'description_column',
@@ -16,6 +17,8 @@ class TransactionImportProfile extends Model
         'debit_column',
         'credit_column',
         'date_format',
+        'payee_field',
+        'description_field',
     ];
 
     public function financialAccounts(): HasMany

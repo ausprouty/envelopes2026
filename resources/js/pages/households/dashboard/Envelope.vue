@@ -21,20 +21,22 @@ interface Envelope {
     context: string;
 }
 
-interface Transaction {
-    id: number;
-    transaction_date: string;
+interface ActivityItem {
+    id: string;
+    type: 'transaction' | 'transfer';
+    date: string;
     payee: string | null;
     description: string | null;
-    amount: number | string;
-    currency: string;
+    amount: number;
 }
 
 const props = defineProps<{
     household: Household;
     envelope: Envelope;
-    transactions: Transaction[];
+    activity: ActivityItem[];
 }>();
+
+
 
 const money = (amount: number | string) => {
     return new Intl.NumberFormat('en-US', {
@@ -145,16 +147,16 @@ const shortDate = (date: string) => {
         <div class="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
             <div class="border-b border-gray-100 px-5 py-4 sm:px-6">
                 <h2 class="text-lg font-semibold text-gray-900">
-                    Recent Transactions and Transfers
+                    Recent Activity
                 </h2>
 
                 <div class="mt-1 text-sm text-gray-500">
-                    Last 20 transactions
+                    Last 20 transactions and transfers
                 </div>
             </div>
 
             <!-- No transactions -->
-            <div v-if="transactions.length === 0" class="px-6 py-12 text-center">
+            <div v-if="activity.length === 0" class="px-6 py-12 text-center">
                 <ReceiptText class="mx-auto mb-3 h-8 w-8 text-[#477b67]" />
 
                 <div class="font-medium text-gray-900">
@@ -168,35 +170,35 @@ const shortDate = (date: string) => {
 
             <!-- Transactions -->
             <div v-else class="divide-y divide-gray-100">
-                <div v-for="transaction in transactions" :key="transaction.id"
+                <div v-for="item in activity" :key="item.id"
                     class="flex items-center justify-between gap-4 px-5 py-4 sm:px-6">
                     <div class="min-w-0">
                         <div class="truncate font-medium text-gray-900">
                             {{
-                                transaction.payee ||
-                                transaction.description ||
+                                item.payee ||
+                                item.description ||
                                 'Transaction'
                             }}
                         </div>
 
                         <div class="mt-1 text-sm text-gray-500">
-                            {{ shortDate(transaction.transaction_date) }}
+                            {{ shortDate(item.date) }}
                         </div>
 
                         <div v-if="
-                            transaction.payee &&
-                            transaction.description &&
-                            transaction.description !== transaction.payee
+                            item.payee &&
+                            item.description &&
+                            item.description !== item.payee
                         " class="mt-1 truncate text-xs text-gray-400">
-                            {{ transaction.description }}
+                            {{ item.description }}
                         </div>
                     </div>
 
-                    <div class="shrink-0 text-right font-semibold" :class="Number(transaction.amount) < 0
+                    <div class="shrink-0 text-right font-semibold" :class="Number(item.amount) < 0
                         ? 'text-gray-900'
                         : 'text-[#477b67]'
                         ">
-                        {{ money(transaction.amount) }}
+                        {{ money(item.amount) }}
                     </div>
                 </div>
             </div>

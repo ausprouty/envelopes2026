@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\FinancialAccount;
 use App\Models\Household;
+use App\Models\TransactionImportProfile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -85,13 +86,21 @@ class FinancialAccountController extends Controller
         );
 
         return Inertia::render('households/accounts/Edit', [
+            'account' => $financialAccount,
+
             'household' => [
                 'id' => $household->id,
                 'household_name' => $household->household_name,
                 'default_currency' => $household->default_currency,
             ],
 
-            'account' => $financialAccount,
+            'importProfiles' => TransactionImportProfile::query()
+                ->orderBy('name')
+                ->get([
+                    'id',
+                    'name',
+                    'format',
+                ]),
         ]);
     }
 
@@ -107,6 +116,8 @@ class FinancialAccountController extends Controller
             404
         );
 
+
+
         $financialAccount->update(
             $this->validateAccount($request)
         );
@@ -118,31 +129,42 @@ class FinancialAccountController extends Controller
     private function validateAccount(Request $request): array
     {
         return $request->validate([
-            'legacy_paidby_id' => ['nullable', 'integer'],
-
             'account_name' => ['required', 'string', 'max:150'],
-            'institution_name' => ['nullable', 'string', 'max:100'],
+
+            'account_reference' => ['nullable', 'string', 'max:100'],
 
             'account_type' => [
                 'required',
                 'in:cash,checking,savings,credit_card,term_deposit,investment,retirement,superannuation,crypto,reimbursement,ministry,virtual,other',
             ],
 
-            'currency' => ['required', 'string', 'size:3'],
-            'account_reference' => ['nullable', 'string', 'max:100'],
-            'website' => ['nullable', 'url', 'max:255'],
-
-            'warning_balance' => ['nullable', 'numeric'],
-            'credit_limit' => ['nullable', 'numeric'],
-
-            'include_in_net_worth' => ['boolean'],
             'available_for_spending' => ['boolean'],
-            'is_active' => ['boolean'],
 
             'closed_at' => ['nullable', 'date'],
+
+            'credit_limit' => ['nullable', 'numeric'],
+
+            'currency' => ['required', 'string', 'size:3'],
+
             'display_order' => ['integer'],
+
+            'include_in_net_worth' => ['boolean'],
+
+            'institution_name' => ['nullable', 'string', 'max:100'],
+
+            'is_active' => ['boolean'],
+
+            'legacy_paidby_id' => ['nullable', 'integer'],
+
+            'transaction_import_profile_id' => [
+                'nullable',
+                'integer',
+                'exists:transaction_import_profiles,id',
+            ],
+
+            'warning_balance' => ['nullable', 'numeric'],
+
+            'website' => ['nullable', 'url', 'max:255'],
         ]);
     }
-
-    
 }

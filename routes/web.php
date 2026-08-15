@@ -8,7 +8,9 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FinancialAccountController;
 use App\Http\Controllers\FinancialTransactionController;
 use App\Http\Controllers\IncomeAllocationController;
+use App\Http\Controllers\ImportProfileController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SpendingReportController;
 use App\Http\Controllers\TransactionImportController;
 use Illuminate\Support\Facades\Route;
 
@@ -115,7 +117,20 @@ Route::middleware([
             '/dashboard/envelopes/{category}',
             [DashboardController::class, 'envelope']
         )->name('dashboard.envelope');
+        Route::get(
+            '/import-profiles',
+            [ImportProfileController::class, 'index']
+        )->name('import-profiles.index');
 
+        Route::post(
+            '/import-profiles',
+            [ImportProfileController::class, 'store']
+        )->name('import-profiles.store');
+
+        Route::get(
+            '/import-profiles/create',
+            [ImportProfileController::class, 'create']
+        )->name('import-profiles.create');
         Route::post(
             '/income-allocations',
             [IncomeAllocationController::class, 'store']
@@ -133,10 +148,16 @@ Route::middleware([
 
         Route::get('/reports', [ReportController::class, 'index'])
             ->name('reports.index');
+
         Route::get(
             '/reports/category-balances',
             [CategoryBalanceReportController::class, 'index']
         )->name('reports.category-balances');
+
+        Route::get(
+            '/reports/spending-by-category',
+            [SpendingReportController::class, 'index']
+        )->name('reports.spending-by-category');
 
         // Financial transaction routes
         Route::get(

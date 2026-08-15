@@ -1,149 +1,125 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
 import { ChevronDown, ChevronUp, Upload } from '@lucide/vue';
-
 import { computed, ref } from 'vue';
 
+/*
+|--------------------------------------------------------------------------
+| Types
+|--------------------------------------------------------------------------
+*/
+
+type ImportType = 'csv' | 'ofx';
+type TransactionStatus = 'new' | 'duplicate';
+
+interface Household {
+    id: number;
+    household_name: string;
+}
+
+interface FinancialAccount {
+    id: number;
+    account_name: string;
+    institution_name: string | null;
+    currency: string;
+}
+
+interface ImportProfile {
+    id: number;
+    name: string;
+
+    header_signature: string | null;
+
+    date_column: string;
+    description_column: string;
+
+    amount_column: string | null;
+    debit_column: string | null;
+    credit_column: string | null;
+
+    date_format: string;
+
+    payee_field: string | null;
+    description_field: string | null;
+}
+
+interface PreviewTransaction {
+    transaction_date: string;
+    payee: string;
+    description: string;
+    amount: number;
+    currency: string;
+
+    import_hash?: string;
+    external_id?: string | null;
+
+    status?: TransactionStatus;
+}
+
+interface DuplicateCheckTransaction {
+    transaction_date: string;
+    payee: string;
+    amount: number;
+    import_hash: string;
+    external_id?: string | null;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Props
+|--------------------------------------------------------------------------
+*/
 
 const props = defineProps<{
-    household: {
-        id: number;
-        household_name: string;
-    };
-
-    accounts: Array<{
-        id: number;
-        account_name: string;
-        institution_name: string | null;
-        currency: string;
-    }>;
-
-    profiles: Array<{
-        id: number;
-        name: string;
-        header_signature: string | null;
-        date_column: string;
-        description_column: string;
-        amount_column: string | null;
-        debit_column: string | null;
-        credit_column: string | null;
-        date_format: string;
-    }>;
+    household: Household;
+    accounts: FinancialAccount[];
+    profiles: ImportProfile[];
 }>();
 
+/*
+|--------------------------------------------------------------------------
+| Import State
+|--------------------------------------------------------------------------
+*/
 
-const importType = ref<'csv' | 'ofx'>('csv');
+const importType = ref<ImportType>('csv');
+
+const financialAccountId = ref<number | ''>('');
+const selectedProfileId = ref<number | null>(null);
+
+const csv = ref('');
+
+const preview = ref<PreviewTransaction[]>([]);
+
+const matchedProfile = ref<ImportProfile | null>(null);
+
+const showImportForm = ref(true);
+const errorMessage = ref('');
+
+/*
+|--------------------------------------------------------------------------
+| OFX / QFX Form
+|--------------------------------------------------------------------------
+*/
 
 const ofxForm = useForm({
     financial_account_id: '',
     ofx_file: null as File | null,
 });
 
-const selectQfxFile = (event: Event) => {
-    const input = event.target as HTMLInputElement;
-
-    ofxForm.ofx_file = input.files?.[0] ?? null;
-};
-
-const submitQfx = async () => {
-    errorMessage.value = '';
-    preview.value = [];
-
-    if (!ofxForm.financial_account_id) {
-        errorMessage.value = 'Please select an account.';
-
-        return;
-    }
-
-    if (!ofxForm.ofx_file) {
-        errorMessage.value = 'Please select a OFX file.';
-
-        return;
-    }
-
-    const formData = new FormData();
-
-    formData.append(
-        'financial_account_id',
-        String(ofxForm.financial_account_id)
-    );
-
-    formData.append(
-        'ofx_file',
-        ofxForm.ofx_file
-    );
-
-    const response = await fetch(
-        `/households/${props.household.id}/transactions/import/ofx/preview`,
-        {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN':
-                    document
-                        .querySelector('meta[name="csrf-token"]')
-                        ?.getAttribute('content') ?? '',
-                'Accept': 'application/json',
-            },
-            body: formData,
-        }
-    );
-
-    if (!response.ok) {
-        const errorData = await response.json();
-
-        console.log('OFX upload error:', errorData);
-
-        errorMessage.value =
-            errorData.message ?? 'Unable to read the OFX file.';
-
-        return;
-    }
-
-    const data = await response.json();
-
-    preview.value = data.transactions.map(
-        (transaction: {
-            transaction_date: string;
-            description: string;
-            amount: number;
-            currency: string;
-            external_id?: string;
-        }) => ({
-            ...transaction,
-            status: 'new' as const,
-        })
-    );
-
-    financialAccountId.value =
-        Number(ofxForm.financial_account_id);
-
-    await checkDuplicates();
-
-    showImportForm.value = false;
-};
-
-const financialAccountId = ref<number | ''>('');
-const csv = ref('');
-const preview = ref<Array<{
-    transaction_date: string;
-    payee: string;
-    description?: string;
-    amount: number;
-    currency: string;
-    import_hash?: string;
-    external_id?: string;
-    status?: 'new' | 'duplicate';
-}>>([]);
-
-const matchedProfile = ref<(typeof props.profiles)[number] | null>(null);
-const showImportForm = ref(true);
-const errorMessage = ref('');
+/*
+|--------------------------------------------------------------------------
+| Computed Values
+|--------------------------------------------------------------------------
+*/
 
 const selectedAccount = computed(() =>
     props.accounts.find(
-        account => account.id === Number(financialAccountId.value)
+        account =>
+            account.id === Number(financialAccountId.value)
     )
 );
+
 const newTransactions = computed(() =>
     preview.value.filter(
         transaction => transaction.status === 'new'
@@ -156,8 +132,23 @@ const duplicateTransactions = computed(() =>
     )
 );
 
+/*
+|--------------------------------------------------------------------------
+| General Helpers
+|--------------------------------------------------------------------------
+*/
+
+function csrfToken(): string {
+    return (
+        document
+            .querySelector('meta[name="csrf-token"]')
+            ?.getAttribute('content') ?? ''
+    );
+}
+
 function parseCsvLine(line: string): string[] {
     const values: string[] = [];
+
     let current = '';
     let insideQuotes = false;
 
@@ -178,6 +169,7 @@ function parseCsvLine(line: string): string[] {
         if (character === ',' && !insideQuotes) {
             values.push(current.trim());
             current = '';
+
             continue;
         }
 
@@ -195,7 +187,9 @@ function normalizeHeaders(headers: string[]): string[] {
         .filter(header => header !== '');
 }
 
-function parseAmount(value: string | undefined): number | null {
+function parseAmount(
+    value: string | undefined
+): number | null {
     if (!value || value.trim() === '') {
         return null;
     }
@@ -203,7 +197,8 @@ function parseAmount(value: string | undefined): number | null {
     let cleaned = value.trim();
 
     const negativeParentheses =
-        cleaned.startsWith('(') && cleaned.endsWith(')');
+        cleaned.startsWith('(') &&
+        cleaned.endsWith(')');
 
     cleaned = cleaned
         .replace(/\$/g, '')
@@ -222,9 +217,11 @@ function parseAmount(value: string | undefined): number | null {
 }
 
 function convertDate(value: string): string | null {
-    const match = value.trim().match(
-        /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/
-    );
+    const match = value
+        .trim()
+        .match(
+            /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/
+        );
 
     if (!match) {
         return null;
@@ -237,22 +234,174 @@ function convertDate(value: string): string | null {
     return `${year}-${month}-${day}`;
 }
 
-async function previewCsv() {
+/*
+|--------------------------------------------------------------------------
+| OFX / QFX Import
+|--------------------------------------------------------------------------
+*/
+
+function selectQfxFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+
+    ofxForm.ofx_file =
+        input.files?.[0] ?? null;
+}
+
+async function submitQfx(): Promise<void> {
+    errorMessage.value = '';
+    preview.value = [];
+
+    /*
+    |----------------------------------------------------------------------
+    | Validate
+    |----------------------------------------------------------------------
+    */
+
+    if (!ofxForm.financial_account_id) {
+        errorMessage.value =
+            'Please select an account.';
+
+        return;
+    }
+
+    if (!selectedProfileId.value) {
+        errorMessage.value =
+            'Please select an import profile.';
+
+        return;
+    }
+
+    if (!ofxForm.ofx_file) {
+        errorMessage.value =
+            'Please select an OFX file.';
+
+        return;
+    }
+
+    /*
+    |----------------------------------------------------------------------
+    | Build Upload
+    |----------------------------------------------------------------------
+    */
+
+    const formData = new FormData();
+
+    formData.append(
+        'financial_account_id',
+        String(ofxForm.financial_account_id)
+    );
+
+    formData.append(
+        'transaction_import_profile_id',
+        String(selectedProfileId.value)
+    );
+
+    formData.append(
+        'ofx_file',
+        ofxForm.ofx_file
+    );
+
+    /*
+    |----------------------------------------------------------------------
+    | Request Preview
+    |----------------------------------------------------------------------
+    */
+
+    const response = await fetch(
+        `/households/${props.household.id}/transactions/import/ofx/preview`,
+        {
+            method: 'POST',
+
+            headers: {
+                'X-CSRF-TOKEN': csrfToken(),
+                'Accept': 'application/json',
+            },
+
+            body: formData,
+        }
+    );
+
+    if (!response.ok) {
+        const errorData = await response.json();
+
+        console.log(
+            'OFX upload error:',
+            errorData
+        );
+
+        errorMessage.value =
+            errorData.message ??
+            'Unable to read the OFX file.';
+
+        return;
+    }
+
+    /*
+    |----------------------------------------------------------------------
+    | Store Preview
+    |----------------------------------------------------------------------
+    */
+
+    const data = await response.json();
+
+    financialAccountId.value =
+        Number(ofxForm.financial_account_id);
+
+    preview.value = data.transactions.map(
+        (transaction: PreviewTransaction) => ({
+            ...transaction,
+
+            payee:
+                transaction.payee ?? '',
+
+            description:
+                transaction.description ?? '',
+
+            status: 'new' as const,
+        })
+    );
+
+    await checkDuplicates();
+
+    showImportForm.value = false;
+}
+
+/*
+|--------------------------------------------------------------------------
+| CSV Import
+|--------------------------------------------------------------------------
+*/
+
+async function previewCsv(): Promise<void> {
     errorMessage.value = '';
     preview.value = [];
     matchedProfile.value = null;
 
+    /*
+    |----------------------------------------------------------------------
+    | Validate
+    |----------------------------------------------------------------------
+    */
+
     if (!financialAccountId.value) {
-        errorMessage.value = 'Please select an account.';
+        errorMessage.value =
+            'Please select an account.';
 
         return;
     }
 
     if (!csv.value.trim()) {
-        errorMessage.value = 'Please paste CSV data.';
+        errorMessage.value =
+            'Please paste CSV data.';
 
         return;
     }
+
+    /*
+    |----------------------------------------------------------------------
+    | Read CSV
+    |----------------------------------------------------------------------
+    */
 
     const lines = csv.value
         .split(/\r?\n/)
@@ -266,13 +415,25 @@ async function previewCsv() {
         return;
     }
 
-    const rawHeaders = parseCsvLine(lines[0]);
-    const headers = normalizeHeaders(rawHeaders);
+    /*
+    |----------------------------------------------------------------------
+    | Find Matching Import Profile
+    |----------------------------------------------------------------------
+    */
 
-    const headerSignature = headers.join('|');
+    const rawHeaders =
+        parseCsvLine(lines[0]);
+
+    const headers =
+        normalizeHeaders(rawHeaders);
+
+    const headerSignature =
+        headers.join('|');
 
     const profile = props.profiles.find(
-        item => item.header_signature === headerSignature
+        item =>
+            item.header_signature ===
+            headerSignature
     );
 
     if (!profile) {
@@ -284,6 +445,12 @@ async function previewCsv() {
 
     matchedProfile.value = profile;
 
+    /*
+    |----------------------------------------------------------------------
+    | Find Selected Account
+    |----------------------------------------------------------------------
+    */
+
     const account = selectedAccount.value;
 
     if (!account) {
@@ -293,66 +460,115 @@ async function previewCsv() {
         return;
     }
 
-    const transactions: Array<{
-        transaction_date: string;
-        payee: string;
-        description?: string;
-        amount: number;
-        currency: string;
-        import_hash?: string;
-        external_id?: string;
-        status?: 'new' | 'duplicate';
-    }> = [];
+    /*
+    |----------------------------------------------------------------------
+    | Parse Transactions
+    |----------------------------------------------------------------------
+    */
+
+    const transactions: PreviewTransaction[] = [];
 
     for (const line of lines.slice(1)) {
-        const rawValues = parseCsvLine(line);
+        const rawValues =
+            parseCsvLine(line);
 
-        const values = rawValues.slice(0, headers.length);
+        const values =
+            rawValues.slice(
+                0,
+                headers.length
+            );
 
-        if (values.length !== headers.length) {
+        if (
+            values.length !==
+            headers.length
+        ) {
             continue;
         }
 
         const row: Record<string, string> = {};
 
-        headers.forEach((header, index) => {
-            row[header] = values[index] ?? '';
-        });
+        headers.forEach(
+            (header, index) => {
+                row[header] =
+                    values[index] ?? '';
+            }
+        );
 
-        const dateValue = row[profile.date_column];
+        /*
+        |------------------------------------------------------------------
+        | Date
+        |------------------------------------------------------------------
+        */
 
-        const transactionDate = convertDate(dateValue);
+        const dateValue =
+            row[profile.date_column];
+
+        const transactionDate =
+            convertDate(dateValue);
 
         if (!transactionDate) {
             continue;
         }
 
+        /*
+        |------------------------------------------------------------------
+        | Payee
+        |------------------------------------------------------------------
+        */
+
         const payee =
-            row[profile.description_column]?.trim();
+            row[
+                profile.description_column
+            ]?.trim();
 
         if (!payee) {
             continue;
         }
 
+        /*
+        |------------------------------------------------------------------
+        | Amount
+        |------------------------------------------------------------------
+        */
+
         let amount: number | null = null;
 
         if (profile.amount_column) {
             amount = parseAmount(
-                row[profile.amount_column]
+                row[
+                profile.amount_column
+                ]
             );
         } else {
-            const debit = profile.debit_column
-                ? parseAmount(row[profile.debit_column])
-                : null;
+            const debit =
+                profile.debit_column
+                    ? parseAmount(
+                        row[
+                        profile.debit_column
+                        ]
+                    )
+                    : null;
 
-            const credit = profile.credit_column
-                ? parseAmount(row[profile.credit_column])
-                : null;
+            const credit =
+                profile.credit_column
+                    ? parseAmount(
+                        row[
+                        profile.credit_column
+                        ]
+                    )
+                    : null;
 
-            if (debit !== null && debit !== 0) {
-                amount = -Math.abs(debit);
-            } else if (credit !== null) {
-                amount = Math.abs(credit);
+            if (
+                debit !== null &&
+                debit !== 0
+            ) {
+                amount =
+                    -Math.abs(debit);
+            } else if (
+                credit !== null
+            ) {
+                amount =
+                    Math.abs(credit);
             }
         }
 
@@ -360,20 +576,38 @@ async function previewCsv() {
             continue;
         }
 
+        /*
+        |------------------------------------------------------------------
+        | Add Transaction
+        |------------------------------------------------------------------
+        */
+
         transactions.push({
-            transaction_date: transactionDate,
+            transaction_date:
+                transactionDate,
+
             payee,
+
             description: '',
+
             amount,
-            currency: account.currency,
+
+            currency:
+                account.currency,
+
             import_hash: '',
+
             status: 'new',
         });
     }
 
     preview.value = transactions;
 
-    await checkDuplicates();
+    /*
+    |----------------------------------------------------------------------
+    | Check Result
+    |----------------------------------------------------------------------
+    */
 
     if (transactions.length === 0) {
         errorMessage.value =
@@ -382,10 +616,22 @@ async function previewCsv() {
         return;
     }
 
+    await checkDuplicates();
+
     showImportForm.value = false;
 }
-async function checkDuplicates() {
-    if (!financialAccountId.value || preview.value.length === 0) {
+
+/*
+|--------------------------------------------------------------------------
+| Duplicate Checking
+|--------------------------------------------------------------------------
+*/
+
+async function checkDuplicates(): Promise<void> {
+    if (
+        !financialAccountId.value ||
+        preview.value.length === 0
+    ) {
         return;
     }
 
@@ -393,22 +639,39 @@ async function checkDuplicates() {
         `/households/${props.household.id}/transactions/import/check-duplicates`,
         {
             method: 'POST',
+
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type':
+                    'application/json',
+
                 'X-CSRF-TOKEN':
-                    document
-                        .querySelector('meta[name="csrf-token"]')
-                        ?.getAttribute('content') ?? '',
-                'Accept': 'application/json',
+                    csrfToken(),
+
+                'Accept':
+                    'application/json',
             },
+
             body: JSON.stringify({
-                financial_account_id: financialAccountId.value,
-                transactions: preview.value.map(transaction => ({
-                    transaction_date: transaction.transaction_date,
-                    payee: transaction.payee,
-                    amount: transaction.amount,
-                    external_id: transaction.external_id ?? null,
-                })),
+                financial_account_id:
+                    financialAccountId.value,
+
+                transactions:
+                    preview.value.map(
+                        transaction => ({
+                            transaction_date:
+                                transaction.transaction_date,
+
+                            payee:
+                                transaction.payee,
+
+                            amount:
+                                transaction.amount,
+
+                            external_id:
+                                transaction.external_id ??
+                                null,
+                        })
+                    ),
             }),
         }
     );
@@ -422,80 +685,149 @@ async function checkDuplicates() {
 
     const data = await response.json();
 
-    const existingHashes = new Set<string>(
-        data.existing_hashes ?? []
-    );
+    const existingHashes =
+        new Set<string>(
+            data.existing_hashes ?? []
+        );
 
-    preview.value = data.transactions.map(
-        (transaction: {
-            transaction_date: string;
-            payee: string;
-            amount: number;
-            import_hash: string;
-            external_id?: string | null;
-        }) => ({
-            ...transaction,
-            currency: selectedAccount.value?.currency ?? '',
-            status: existingHashes.has(transaction.import_hash)
-                ? 'duplicate'
-                : 'new',
-        })
+    const checkedTransactions =
+        data.transactions as DuplicateCheckTransaction[];
+
+    /*
+    |----------------------------------------------------------------------
+    | Add duplicate information without losing description/currency
+    |----------------------------------------------------------------------
+    */
+
+    preview.value = preview.value.map(
+        (transaction, index) => {
+            const checked =
+                checkedTransactions[index];
+
+            if (!checked) {
+                return transaction;
+            }
+
+            return {
+                ...transaction,
+
+                import_hash:
+                    checked.import_hash,
+
+                external_id:
+                    checked.external_id ??
+                    transaction.external_id,
+
+                status:
+                    existingHashes.has(
+                        checked.import_hash
+                    )
+                        ? 'duplicate'
+                        : 'new',
+            };
+        }
     );
 }
-async function importTransactions() {
+
+/*
+|--------------------------------------------------------------------------
+| Store Transactions
+|--------------------------------------------------------------------------
+*/
+
+async function importTransactions(): Promise<void> {
     errorMessage.value = '';
 
+    /*
+    |----------------------------------------------------------------------
+    | Validate
+    |----------------------------------------------------------------------
+    */
+
     if (!financialAccountId.value) {
-        errorMessage.value = 'Please select an account.';
+        errorMessage.value =
+            'Please select an account.';
 
         return;
     }
 
     if (newTransactions.value.length === 0) {
-        errorMessage.value = 'There are no new transactions to import.';
+        errorMessage.value =
+            'There are no new transactions to import.';
 
         return;
     }
+
+    /*
+    |----------------------------------------------------------------------
+    | Store
+    |----------------------------------------------------------------------
+    */
 
     const response = await fetch(
         `/households/${props.household.id}/transactions/import/store`,
         {
             method: 'POST',
+
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type':
+                    'application/json',
+
                 'X-CSRF-TOKEN':
-                    document
-                        .querySelector('meta[name="csrf-token"]')
-                        ?.getAttribute('content') ?? '',
-                'Accept': 'application/json',
+                    csrfToken(),
+
+                'Accept':
+                    'application/json',
             },
+
             body: JSON.stringify({
-                financial_account_id: financialAccountId.value,
-                transactions: newTransactions.value.map(transaction => ({
-                    transaction_date: transaction.transaction_date,
-                    payee: transaction.payee,
-                    description: transaction.description ?? '',
-                    amount: transaction.amount,
-                    currency: transaction.currency,
-                    external_id: transaction.external_id ?? null,
-                })),
+                financial_account_id:
+                    financialAccountId.value,
+
+                transactions:
+                    newTransactions.value.map(
+                        transaction => ({
+                            transaction_date:
+                                transaction.transaction_date,
+
+                            payee:
+                                transaction.payee,
+
+                            description:
+                                transaction.description ??
+                                '',
+
+                            amount:
+                                transaction.amount,
+
+                            currency:
+                                transaction.currency,
+
+                            external_id:
+                                transaction.external_id ??
+                                null,
+                        })
+                    ),
             }),
         }
     );
 
     if (!response.ok) {
-        errorMessage.value = 'Unable to import transactions.';
+        errorMessage.value =
+            'Unable to import transactions.';
 
         return;
     }
 
-
+    /*
+    |----------------------------------------------------------------------
+    | Return to Transactions
+    |----------------------------------------------------------------------
+    */
 
     window.location.href =
         `/households/${props.household.id}/transactions`;
 }
-
-
 </script>
 
 <template>
@@ -636,6 +968,7 @@ async function importTransactions() {
             <div class="border-t px-6 py-6">
                 <form @submit.prevent="submitQfx" class="space-y-6">
 
+                    <!-- Account -->
                     <div>
                         <label for="financial_account_id" class="mb-2 block text-sm font-medium">
                             Account
@@ -653,6 +986,25 @@ async function importTransactions() {
                         </select>
                     </div>
 
+                    <!-- Import Profile -->
+                    <div>
+                        <label for="transaction_import_profile_id" class="mb-2 block text-sm font-medium">
+                            Import Profile
+                        </label>
+
+                        <select id="transaction_import_profile_id" v-model="selectedProfileId"
+                            class="w-full rounded-md border px-3 py-2">
+                            <option :value="null">
+                                Select an import profile
+                            </option>
+
+                            <option v-for="profile in profiles" :key="profile.id" :value="profile.id">
+                                {{ profile.name }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- OFX File -->
                     <div>
                         <label for="ofx_file" class="mb-2 block text-sm font-medium">
                             OFX File
@@ -662,11 +1014,13 @@ async function importTransactions() {
                             class="block w-full rounded-md border px-3 py-2" @change="selectQfxFile" />
                     </div>
 
+                    <!-- Submit -->
                     <button type="submit"
                         class="rounded-md bg-[#477b67] px-4 py-2 font-medium text-white hover:opacity-90"
                         :disabled="ofxForm.processing">
                         Preview Transactions
                     </button>
+
                 </form>
             </div>
         </div>

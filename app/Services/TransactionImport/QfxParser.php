@@ -6,8 +6,11 @@ use RuntimeException;
 
 class QfxParser
 {
-    public function parse(string $contents): array
-    {
+    public function parse(
+        string $contents,
+        string $payeeField = 'MEMO',
+        ?string $descriptionField = null
+    ): array {
         $contents = trim($contents);
 
         if ($contents === '') {
@@ -23,27 +26,36 @@ class QfxParser
         );
 
         foreach ($matches[1] as $transactionBlock) {
-            $memo = $this->getTagValue(
+            $payee = $this->getTagValue(
                 $transactionBlock,
-                'MEMO'
+                $payeeField
             );
 
-            $name = $this->getTagValue(
-                $transactionBlock,
-                'NAME'
-            );
+            $description = $descriptionField
+                ? $this->getTagValue(
+                    $transactionBlock,
+                    $descriptionField
+                )
+                : null;
+
             $transactions[] = [
                 'transaction_date' => $this->parseDate(
-                    $this->getTagValue($transactionBlock, 'DTPOSTED')
+                    $this->getTagValue(
+                        $transactionBlock,
+                        'DTPOSTED'
+                    )
                 ),
 
                 'amount' => $this->parseAmount(
-                    $this->getTagValue($transactionBlock, 'TRNAMT')
+                    $this->getTagValue(
+                        $transactionBlock,
+                        'TRNAMT'
+                    )
                 ),
 
-                'payee' => $memo ?: $name,
+                'payee' => $payee,
 
-                'description' => null, // the user will fill this in
+                'description' => $description,
 
                 'external_id' => $this->getTagValue(
                     $transactionBlock,

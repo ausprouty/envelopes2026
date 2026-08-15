@@ -8,39 +8,48 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class FinancialAccount extends Model
 {
     protected $fillable = [
-        'legacy_paidby_id',
         'account_name',
-        'institution_name',
-        'account_type',
-        'currency',
         'account_reference',
-        'website',
-        'warning_balance',
-        'credit_limit',
-        'include_in_net_worth',
+        'account_type',
         'available_for_spending',
-        'is_active',
         'closed_at',
+        'credit_limit',
+        'currency',
         'display_order',
-        'transaction_import_profile_id'
+        'include_in_net_worth',
+        'institution_name',
+        'is_active',
+        'legacy_paidby_id',
+        'transaction_import_profile_id',
+        'warning_balance',
+        'website',
     ];
 
     protected function casts(): array
     {
         return [
-            'warning_balance' => 'decimal:2',
-            'credit_limit' => 'decimal:2',
-            'include_in_net_worth' => 'boolean',
             'available_for_spending' => 'boolean',
-            'is_active' => 'boolean',
             'closed_at' => 'date',
+            'credit_limit' => 'decimal:2',
             'display_order' => 'integer',
+            'include_in_net_worth' => 'boolean',
+            'is_active' => 'boolean',
+            'warning_balance' => 'decimal:2',
         ];
     }
+
 
     public function household(): BelongsTo
     {
         return $this->belongsTo(Household::class);
+    }
+
+    public function importProfile()
+    {
+        return $this->belongsTo(
+            TransactionImportProfile::class,
+            'transaction_import_profile_id'
+        );
     }
     public function transactionImportProfile(): BelongsTo
     {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\CategoryTransfer;
 use App\Models\Household;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
@@ -157,13 +158,59 @@ class DashboardController extends Controller
             404
         );
 
+        $transfersOut = CategoryTransfer::query()
+            ->with('toCategory')
+            ->where('household_id', $household->id)
+            ->where('from_category_id', $category->id)
+            ->get()
+            ->map(function (CategoryTransfer $transfer) {
+                return [
+                    'id' => 'transfer-out-' . $transfer->id,
+                    'type' => 'transfer',
+                    'date' => $transfer->transfer_date->toDateString(),
+                    'payee' => 'Transfer to ' . $transfer->toCategory->name,
+                    'description' => $transfer->description,
+                    'amount' => -(float) $transfer->amount,
+                ];
+            });
+
+        $transfersIn = CategoryTransfer::query()
+            ->with('fromCategory')
+            ->where('household_id', $household->id)
+            ->where('to_category_id', $category->id)
+            ->get()
+            ->map(function (CategoryTransfer $transfer) {
+                return [
+                    'id' => 'transfer-in-' . $transfer->id,
+                    'type' => 'transfer',
+                    'date' => $transfer->transfer_date->toDateString(),
+                    'payee' => 'Transfer from ' . $transfer->fromCategory->name,
+                    'description' => $transfer->description,
+                    'amount' => (float) $transfer->amount,
+                ];
+            });
+
         $transactions = Transaction::query()
             ->where('household_id', $household->id)
             ->where('category_id', $category->id)
-            ->orderByDesc('transaction_date')
-            ->orderByDesc('id')
-            ->limit(20)
-            ->get();
+            ->get()
+            ->map(function (Transaction $transaction) {
+                return [
+                    'id' => 'transaction-' . $transaction->id,
+                    'type' => 'transaction',
+                    'date' => $transaction->transaction_date->toDateString(),
+                    'payee' => $transaction->payee,
+                    'description' => $transaction->description,
+                    'amount' => (float) $transaction->amount,
+                ];
+            });
+
+        $activity = $transactions
+            ->concat($transfersOut)
+            ->concat($transfersIn)
+            ->sortByDesc('date')
+            ->take(20)
+            ->values();
 
         $spentThisMonth = Transaction::query()
             ->where('household_id', $household->id)
@@ -181,12 +228,13 @@ class DashboardController extends Controller
             'envelope' => [
                 'id' => $category->id,
                 'name' => $category->name,
+                'context' => $category->context,
                 'image' => $category->dashboard_image,
                 'current_balance' => (float) $category->current_balance,
                 'spent_this_month' => abs((float) $spentThisMonth),
             ],
 
-            'transactions' => $transactions,
+            'activity' => $activity,
         ]);
     }
 }

@@ -244,54 +244,65 @@ class TransactionImportController extends Controller
         ]);
     }
 
-    public function previewOfx(
-        Request $request,
-        Household $household,
-        QfxParser $qfxParser
-    ): JsonResponse {
-        $validated = $request->validate([
-            'financial_account_id' => [
-                'required',
-                'integer',
-                'exists:financial_accounts,id',
-            ],
-            'ofx_file' => [
-                'required',
-                'file',
-                'extensions:qfx,qbo,ofx,txt',
-                'max:10240',
-            ],
-        ]);
+   public function previewOfx(
+    Request $request,
+    Household $household,
+    QfxParser $qfxParser
+): JsonResponse {
+    $validated = $request->validate([
+        'financial_account_id' => [
+            'required',
+            'integer',
+            'exists:financial_accounts,id',
+        ],
+        'ofx_file' => [
+            'required',
+            'file',
+            'extensions:qfx,qbo,ofx,txt',
+            'max:10240',
+        ],
+    ]);
 
-        $account = FinancialAccount::query()
-            ->where('household_id', $household->id)
-            ->findOrFail($validated['financial_account_id']);
+    $account = FinancialAccount::query()
+        ->with('importProfile')
+        ->where('household_id', $household->id)
+        ->findOrFail($validated['financial_account_id']);
 
-        $contents = file_get_contents(
-            $request->file('ofx_file')->getRealPath()
-        );
+    $profile = $account->importProfile;
 
-        $transactions = $qfxParser->parse($contents);
-
-        $transactions = collect($transactions)
-            ->map(function (array $transaction) use ($account) {
-                return [
-                    'transaction_date' => $transaction['transaction_date'],
-                    'description' => $transaction['description']
-                        ?: $transaction['payee']
-                        ?: '',
-                    'payee' => $transaction['payee'],
-                    'amount' => $transaction['amount'],
-                    'currency' => $account->currency,
-                    'external_id' => $transaction['external_id'],
-                ];
-            })
-            ->values();
-
+    if (! $profile) {
         return response()->json([
-            'transactions' => $transactions,
-        ]);
+            'message' => 'This account does not have an import profile assigned.',
+        ], 422);
     }
+
+    $contents = file_get_contents(
+        $request->file('ofx_file')->getRealPath()
+    );
+
+    $transactions = $qfxParser->parse(
+        $contents,
+        $profile->payee_field ?? 'MEMO',
+        $profile->description_field
+    );
+
+    $transactions = collect($transactions)
+        ->map(function (array $transaction) use ($account) {
+            return [
+                'transaction_date' => $transaction['transaction_date'],
+                'description' => $transaction['description'] ?? '',
+                'payee' => $transaction['payee'] ?? '',
+                'amount' => $transaction['amount'],
+                'currency' => $account->currency,
+                'external_id' => $transaction['external_id'],
+            ];
+        })
+        ->values();
+
+    return response()->json([
+        'transactions' => $transactions,
+    ]);
+}
 
 
     public function store(

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
-interface Household {
-    id: number;
-    household_name: string;
-    default_currency: string;
-}
+
+const props = defineProps<{
+    household: Household;
+    account: Account | null;
+    importProfiles: ImportProfile[];
+}>();
 
 interface Account {
     id: number;
@@ -18,12 +19,20 @@ interface Account {
     website: string | null;
     warning_balance: number | null;
     is_active: boolean;
+    transaction_import_profile_id: number | null;
 }
 
-const props = defineProps<{
-    household: Household;
-    account: Account | null;
-}>();
+interface Household {
+    id: number;
+    household_name: string;
+    default_currency: string;
+}
+
+interface ImportProfile {
+    id: number;
+    name: string;
+    format: string;
+}
 
 const form = useForm({
     legacy_paidby_id: props.account?.legacy_paidby_id ?? '',
@@ -37,6 +46,8 @@ const form = useForm({
     website: props.account?.website ?? '',
     warning_balance: props.account?.warning_balance ?? '',
     is_active: props.account?.is_active ?? true,
+    transaction_import_profile_id:
+        props.account?.transaction_import_profile_id ?? '',
 });
 
 function submit() {
@@ -130,6 +141,29 @@ function submit() {
 
                         <p v-if="form.errors.account_type" class="mt-1 text-sm text-red-600">
                             {{ form.errors.account_type }}
+                        </p>
+                    </div>
+
+                    <!-- Import Rules -->
+
+                    <div>
+                        <label for="transaction_import_profile_id" class="mb-2 block text-sm font-medium">
+                            Import Profile
+                        </label>
+
+                        <select id="transaction_import_profile_id" v-model="form.transaction_import_profile_id"
+                            class="w-full rounded-md border border-gray-400 px-3 py-2 focus:border-[#477b67] focus:ring-2 focus:ring-[#477b67]/20">
+                            <option value="">
+                                No import profile
+                            </option>
+
+                            <option v-for="profile in importProfiles" :key="profile.id" :value="profile.id">
+                                {{ profile.name }}
+                            </option>
+                        </select>
+
+                        <p v-if="form.errors.transaction_import_profile_id" class="mt-1 text-sm text-red-600">
+                            {{ form.errors.transaction_import_profile_id }}
                         </p>
                     </div>
 
