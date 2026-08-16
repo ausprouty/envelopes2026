@@ -33,10 +33,13 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->unique([
-                'financial_account_id',
-                'transaction_import_profile_id',
-            ]);
+            $table->unique(
+                [
+                    'financial_account_id',
+                    'transaction_import_profile_id',
+                ],
+                'faip_account_profile_unique'
+            );
         });
     }
 
