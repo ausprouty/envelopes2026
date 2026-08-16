@@ -6,20 +6,25 @@ const props = defineProps<{
     household: Household;
     account: Account | null;
     importProfiles: ImportProfile[];
+    selectedImportProfileIds: number[];
 }>();
 
 interface Account {
-    id: number;
-    legacy_paidby_id: number | null;
     account_name: string;
-    institution_name: string | null;
-    account_type: string;
-    currency: string;
     account_reference: string | null;
-    website: string | null;
-    warning_balance: number | null;
+    account_type: string;
+    available_for_spending: boolean;
+    closed_at: string | null;
+    credit_limit: number | null;
+    currency: string;
+    display_order: number;
+    id: number;
+    include_in_net_worth: boolean;
+    institution_name: string | null;
     is_active: boolean;
-    transaction_import_profile_id: number | null;
+    legacy_paidby_id: number | null;
+    warning_balance: number | null;
+    website: string | null;
 }
 
 interface Household {
@@ -35,19 +40,31 @@ interface ImportProfile {
 }
 
 const form = useForm({
-    legacy_paidby_id: props.account?.legacy_paidby_id ?? '',
     account_name: props.account?.account_name ?? '',
-    institution_name: props.account?.institution_name ?? '',
+    account_reference: props.account?.account_reference ?? '',
     account_type: props.account?.account_type ?? 'checking',
+    available_for_spending:
+        props.account?.available_for_spending ?? false,
+    closed_at: props.account?.closed_at ?? '',
+    credit_limit: props.account?.credit_limit ?? '',
     currency:
         props.account?.currency ??
         props.household.default_currency,
-    account_reference: props.account?.account_reference ?? '',
-    website: props.account?.website ?? '',
-    warning_balance: props.account?.warning_balance ?? '',
-    is_active: props.account?.is_active ?? true,
-    transaction_import_profile_id:
-        props.account?.transaction_import_profile_id ?? '',
+    display_order: props.account?.display_order ?? 0,
+    import_profile_ids:
+        props.selectedImportProfileIds ?? [],
+    include_in_net_worth:
+        props.account?.include_in_net_worth ?? true,
+    institution_name:
+        props.account?.institution_name ?? '',
+    is_active:
+        props.account?.is_active ?? true,
+    legacy_paidby_id:
+        props.account?.legacy_paidby_id ?? '',
+    warning_balance:
+        props.account?.warning_balance ?? '',
+    website:
+        props.account?.website ?? '',
 });
 
 function submit() {
@@ -144,28 +161,34 @@ function submit() {
                         </p>
                     </div>
 
-                    <!-- Import Rules -->
+                    <!-- Import Profiles -->
 
                     <div>
-                        <label for="transaction_import_profile_id" class="mb-2 block text-sm font-medium">
-                            Import Profile
+                        <label class="mb-2 block text-sm font-medium">
+                            Import Profiles
                         </label>
 
-                        <select id="transaction_import_profile_id" v-model="form.transaction_import_profile_id"
-                            class="w-full rounded-md border border-gray-400 px-3 py-2 focus:border-[#477b67] focus:ring-2 focus:ring-[#477b67]/20">
-                            <option value="">
-                                No import profile
-                            </option>
+                        <div class="space-y-2 rounded-md border border-gray-400 p-4">
+                            <label v-for="profile in importProfiles" :key="profile.id" class="flex items-center gap-3">
+                                <input v-model="form.import_profile_ids" type="checkbox" :value="profile.id"
+                                    class="h-4 w-4" />
 
-                            <option v-for="profile in importProfiles" :key="profile.id" :value="profile.id">
-                                {{ profile.name }}
-                            </option>
-                        </select>
+                                <span>
+                                    {{ profile.name }}
+                                </span>
+                            </label>
 
-                        <p v-if="form.errors.transaction_import_profile_id" class="mt-1 text-sm text-red-600">
-                            {{ form.errors.transaction_import_profile_id }}
+                            <p v-if="importProfiles.length === 0" class="text-sm text-muted-foreground">
+                                No import profiles are available.
+                            </p>
+                        </div>
+
+                        <p v-if="form.errors.import_profile_ids" class="mt-1 text-sm text-red-600">
+                            {{ form.errors.import_profile_ids }}
                         </p>
                     </div>
+
+
 
                     <!-- Currency -->
                     <div>

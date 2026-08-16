@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ChevronDown, ChevronUp, Upload } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
@@ -17,51 +17,46 @@ interface Household {
     household_name: string;
 }
 
-interface FinancialAccount {
-    id: number;
-    account_name: string;
-    institution_name: string | null;
-    currency: string;
-}
-
 interface ImportProfile {
+    amount_column: string | null;
+    credit_column: string | null;
+    date_column: string | null;
+    date_format: string | null;
+    debit_column: string | null;
+    description_column: string | null;
+    description_field: string | null;
+    format: string;
+    header_signature: string | null;
     id: number;
     name: string;
-
-    header_signature: string | null;
-
-    date_column: string;
-    description_column: string;
-
-    amount_column: string | null;
-    debit_column: string | null;
-    credit_column: string | null;
-
-    date_format: string;
-
     payee_field: string | null;
-    description_field: string | null;
+}
+
+interface FinancialAccount {
+    account_name: string;
+    currency: string;
+    id: number;
+    import_profiles: ImportProfile[];
+    institution_name: string | null;
 }
 
 interface PreviewTransaction {
-    transaction_date: string;
-    payee: string;
-    description: string;
     amount: number;
     currency: string;
-
-    import_hash?: string;
+    description: string;
     external_id?: string | null;
-
+    import_hash?: string;
+    payee: string;
     status?: TransactionStatus;
+    transaction_date: string;
 }
 
 interface DuplicateCheckTransaction {
-    transaction_date: string;
-    payee: string;
     amount: number;
-    import_hash: string;
     external_id?: string | null;
+    import_hash: string;
+    payee: string;
+    transaction_date: string;
 }
 
 /*
@@ -71,9 +66,8 @@ interface DuplicateCheckTransaction {
 */
 
 const props = defineProps<{
-    household: Household;
     accounts: FinancialAccount[];
-    profiles: ImportProfile[];
+    household: Household;
 }>();
 
 /*
@@ -82,19 +76,16 @@ const props = defineProps<{
 |--------------------------------------------------------------------------
 */
 
+const financialAccountId = ref<number | ''>('');
 const importType = ref<ImportType>('csv');
 
-const financialAccountId = ref<number | ''>('');
-const selectedProfileId = ref<number | null>(null);
-
 const csv = ref('');
-
 const preview = ref<PreviewTransaction[]>([]);
 
 const matchedProfile = ref<ImportProfile | null>(null);
 
-const showImportForm = ref(true);
 const errorMessage = ref('');
+const showImportForm = ref(true);
 
 /*
 |--------------------------------------------------------------------------
@@ -117,7 +108,23 @@ const selectedAccount = computed(() =>
     props.accounts.find(
         account =>
             account.id === Number(financialAccountId.value)
-    )
+    ) ?? null
+);
+
+const selectedAccountForImport = computed(() =>
+    selectedAccount.value
+);
+
+const supportsCsv = computed(() =>
+    selectedAccountForImport.value
+        ?.import_profiles
+        .some(profile => profile.format === 'csv') ?? false
+);
+
+const supportsOfx = computed(() =>
+    selectedAccountForImport.value
+        ?.import_profiles
+        .some(profile => profile.format === 'ofx') ?? false
 );
 
 const newTransactions = computed(() =>
@@ -253,6 +260,15 @@ async function submitQfx(): Promise<void> {
 
     /*
     |----------------------------------------------------------------------
+    | Use Main Account Selection
+    |----------------------------------------------------------------------
+    */
+
+    ofxForm.financial_account_id =
+        String(financialAccountId.value);
+
+    /*
+    |----------------------------------------------------------------------
     | Validate
     |----------------------------------------------------------------------
     */
@@ -264,16 +280,16 @@ async function submitQfx(): Promise<void> {
         return;
     }
 
-    if (!selectedProfileId.value) {
+    if (!supportsOfx.value) {
         errorMessage.value =
-            'Please select an import profile.';
+            'This account does not have an OFX import profile.';
 
         return;
     }
 
     if (!ofxForm.ofx_file) {
         errorMessage.value =
-            'Please select an OFX file.';
+            'Please select an OFX, QFX or QBO file.';
 
         return;
     }
@@ -288,12 +304,7 @@ async function submitQfx(): Promise<void> {
 
     formData.append(
         'financial_account_id',
-        String(ofxForm.financial_account_id)
-    );
-
-    formData.append(
-        'transaction_import_profile_id',
-        String(selectedProfileId.value)
+        ofxForm.financial_account_id
     );
 
     formData.append(
@@ -313,8 +324,8 @@ async function submitQfx(): Promise<void> {
             method: 'POST',
 
             headers: {
-                'X-CSRF-TOKEN': csrfToken(),
                 'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken(),
             },
 
             body: formData,
@@ -344,18 +355,15 @@ async function submitQfx(): Promise<void> {
 
     const data = await response.json();
 
-    financialAccountId.value =
-        Number(ofxForm.financial_account_id);
-
     preview.value = data.transactions.map(
         (transaction: PreviewTransaction) => ({
             ...transaction,
 
-            payee:
-                transaction.payee ?? '',
-
             description:
                 transaction.description ?? '',
+
+            payee:
+                transaction.payee ?? '',
 
             status: 'new' as const,
         })
@@ -390,6 +398,13 @@ async function previewCsv(): Promise<void> {
         return;
     }
 
+    if (!supportsCsv.value) {
+        errorMessage.value =
+            'This account does not have a CSV import profile.';
+
+        return;
+    }
+
     if (!csv.value.trim()) {
         errorMessage.value =
             'Please paste CSV data.';
@@ -417,7 +432,7 @@ async function previewCsv(): Promise<void> {
 
     /*
     |----------------------------------------------------------------------
-    | Find Matching Import Profile
+    | Find Matching Profile For Selected Account
     |----------------------------------------------------------------------
     */
 
@@ -430,15 +445,16 @@ async function previewCsv(): Promise<void> {
     const headerSignature =
         headers.join('|');
 
-    const profile = props.profiles.find(
-        item =>
-            item.header_signature ===
-            headerSignature
-    );
+    const profile =
+        selectedAccount.value?.import_profiles.find(
+            item =>
+                item.format === 'csv' &&
+                item.header_signature === headerSignature
+        );
 
     if (!profile) {
         errorMessage.value =
-            `CSV format not recognized. Headers found: ${headerSignature}`;
+            `CSV format not recognized for this account. Headers found: ${headerSignature}`;
 
         return;
     }
@@ -456,6 +472,22 @@ async function previewCsv(): Promise<void> {
     if (!account) {
         errorMessage.value =
             'The selected account could not be found.';
+
+        return;
+    }
+
+    /*
+    |----------------------------------------------------------------------
+    | Verify Required Profile Fields
+    |----------------------------------------------------------------------
+    */
+
+    if (
+        !profile.date_column ||
+        !profile.description_column
+    ) {
+        errorMessage.value =
+            'This CSV import profile is missing required column settings.';
 
         return;
     }
@@ -583,21 +615,13 @@ async function previewCsv(): Promise<void> {
         */
 
         transactions.push({
-            transaction_date:
-                transactionDate,
-
-            payee,
-
-            description: '',
-
             amount,
-
-            currency:
-                account.currency,
-
+            currency: account.currency,
+            description: '',
             import_hash: '',
-
+            payee,
             status: 'new',
+            transaction_date: transactionDate,
         });
     }
 
@@ -641,14 +665,9 @@ async function checkDuplicates(): Promise<void> {
             method: 'POST',
 
             headers: {
-                'Content-Type':
-                    'application/json',
-
-                'X-CSRF-TOKEN':
-                    csrfToken(),
-
-                'Accept':
-                    'application/json',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken(),
             },
 
             body: JSON.stringify({
@@ -658,18 +677,18 @@ async function checkDuplicates(): Promise<void> {
                 transactions:
                     preview.value.map(
                         transaction => ({
-                            transaction_date:
-                                transaction.transaction_date,
-
-                            payee:
-                                transaction.payee,
-
                             amount:
                                 transaction.amount,
 
                             external_id:
                                 transaction.external_id ??
                                 null,
+
+                            payee:
+                                transaction.payee,
+
+                            transaction_date:
+                                transaction.transaction_date,
                         })
                     ),
             }),
@@ -695,7 +714,7 @@ async function checkDuplicates(): Promise<void> {
 
     /*
     |----------------------------------------------------------------------
-    | Add duplicate information without losing description/currency
+    | Add Duplicate Information Without Losing Description/Currency
     |----------------------------------------------------------------------
     */
 
@@ -711,12 +730,12 @@ async function checkDuplicates(): Promise<void> {
             return {
                 ...transaction,
 
-                import_hash:
-                    checked.import_hash,
-
                 external_id:
                     checked.external_id ??
                     transaction.external_id,
+
+                import_hash:
+                    checked.import_hash,
 
                 status:
                     existingHashes.has(
@@ -770,14 +789,9 @@ async function importTransactions(): Promise<void> {
             method: 'POST',
 
             headers: {
-                'Content-Type':
-                    'application/json',
-
-                'X-CSRF-TOKEN':
-                    csrfToken(),
-
-                'Accept':
-                    'application/json',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken(),
             },
 
             body: JSON.stringify({
@@ -787,25 +801,25 @@ async function importTransactions(): Promise<void> {
                 transactions:
                     newTransactions.value.map(
                         transaction => ({
-                            transaction_date:
-                                transaction.transaction_date,
-
-                            payee:
-                                transaction.payee,
-
-                            description:
-                                transaction.description ??
-                                '',
-
                             amount:
                                 transaction.amount,
 
                             currency:
                                 transaction.currency,
 
+                            description:
+                                transaction.description ??
+                                '',
+
                             external_id:
                                 transaction.external_id ??
                                 null,
+
+                            payee:
+                                transaction.payee,
+
+                            transaction_date:
+                                transaction.transaction_date,
                         })
                     ),
             }),
@@ -829,12 +843,12 @@ async function importTransactions(): Promise<void> {
         `/households/${props.household.id}/transactions`;
 }
 </script>
-
 <template>
 
     <Head title="Import Transactions" />
 
     <div class="w-full space-y-6 p-6">
+        <!-- Page Header -->
         <div class="flex items-center gap-3">
             <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#477b67] text-white">
                 <Upload class="h-6 w-6" />
@@ -851,16 +865,39 @@ async function importTransactions(): Promise<void> {
             </div>
         </div>
 
-        <!-- ADD THE NEW CHOICE SECTION HERE -->
+        <!-- Account -->
         <div>
+            <label for="import_account_id" class="mb-2 block text-sm font-medium">
+                Account
+            </label>
+
+            <select id="import_account_id" v-model="financialAccountId"
+                class="w-full rounded-md border border-gray-400 bg-background px-3 py-2 focus:border-[#477b67] focus:ring-2 focus:ring-[#477b67]/20">
+                <option value="">
+                    Select an account
+                </option>
+
+                <option v-for="account in accounts" :key="account.id" :value="account.id">
+                    {{ account.account_name }}
+
+                    <template v-if="account.institution_name">
+                        — {{ account.institution_name }}
+                    </template>
+                </option>
+            </select>
+        </div>
+
+        <!-- Import Method -->
+        <div v-if="financialAccountId">
             <div class="mb-3 text-sm font-medium text-gray-700">
                 How would you like to import transactions?
             </div>
 
-            <div class="grid gap-4 sm:grid-cols-2">
-                <button type="button" class="rounded-xl border p-5 text-left transition" :class="importType === 'csv'
+            <div v-if="supportsCsv || supportsOfx" class="grid gap-4 sm:grid-cols-2">
+                <!-- CSV -->
+                <button v-if="supportsCsv" type="button" class="rounded-xl border p-5 text-left transition" :class="importType === 'csv'
                     ? 'border-[#477b67] bg-[#477b67]/5 ring-2 ring-[#477b67]/20'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
+                    : 'border-gray-400 bg-white hover:border-gray-500'
                     " @click="importType = 'csv'">
                     <div class="text-base font-semibold text-gray-900">
                         CSV Import
@@ -871,30 +908,67 @@ async function importTransactions(): Promise<void> {
                     </div>
                 </button>
 
-                <button type="button" class="rounded-xl border p-5 text-left transition" :class="importType === 'ofx'
+                <!-- OFX / QFX / QBO -->
+                <button v-if="supportsOfx" type="button" class="rounded-xl border p-5 text-left transition" :class="importType === 'ofx'
                     ? 'border-[#477b67] bg-[#477b67]/5 ring-2 ring-[#477b67]/20'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
+                    : 'border-gray-400 bg-white hover:border-gray-500'
                     " @click="importType = 'ofx'">
                     <div class="text-base font-semibold text-gray-900">
                         OFX Import
                     </div>
 
                     <div class="mt-1 text-sm text-gray-500">
-                        Upload a OFX, QFX or QBO file downloaded from your bank.
+                        Upload an OFX, QFX or QBO file downloaded from your bank.
                     </div>
                 </button>
             </div>
+
+            <!-- No Profiles -->
+            <div v-if="!supportsCsv && !supportsOfx" class="rounded-md border border-amber-300 bg-amber-50 p-4">
+                <div class="font-medium text-amber-900">
+                    No import methods are set up for this account yet.
+                </div>
+
+                <div class="mt-1 text-sm text-amber-800">
+                    You can assign an existing import profile or create a new one.
+                </div>
+
+                <div class="mt-3 flex flex-wrap gap-3">
+                    <Link :href="`/households/${household.id}/accounts/${financialAccountId}/edit`"
+                        class="inline-flex items-center rounded-md bg-[#477b67] px-3 py-2 text-sm font-medium text-white hover:opacity-90">
+                        Assign Existing Profile
+                    </Link>
+
+                    <Link :href="`/households/${household.id}/import-profiles/create`"
+                        class="inline-flex items-center rounded-md border border-gray-400 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50">
+                        Create New Profile
+                    </Link>
+                </div>
+            </div>
         </div>
 
-        <!-- YOUR EXISTING CSV CARD STARTS HERE -->
-        <div v-if="importType === 'csv'" class="rounded-xl border">
+        <!-- Error -->
+        <div v-if="errorMessage" class="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+            {{ errorMessage }}
+        </div>
+
+        <!-- CSV Import -->
+        <div v-if="
+            financialAccountId &&
+            importType === 'csv' &&
+            supportsCsv
+        " class="rounded-xl border border-gray-300">
             <div class="flex items-center justify-between px-6 py-4">
                 <div>
-
+                    <div class="font-medium">
+                        CSV Import
+                    </div>
 
                     <div v-if="matchedProfile" class="mt-1 text-sm text-muted-foreground">
                         Format recognized:
-                        <strong>{{ matchedProfile.name }}</strong>
+                        <strong>
+                            {{ matchedProfile.name }}
+                        </strong>
                     </div>
                 </div>
 
@@ -913,161 +987,113 @@ async function importTransactions(): Promise<void> {
                 </button>
             </div>
 
-            <div v-show="showImportForm" class="space-y-5 border-t p-6">
+            <div v-show="showImportForm" class="space-y-5 border-t border-gray-300 p-6">
                 <div>
-                    <label class="mb-2 block text-sm font-medium">
-                        Account
-                    </label>
-
-                    <select v-model="financialAccountId" class="w-full rounded-md border bg-background px-3 py-2">
-                        <option value="">
-                            Select an account
-                        </option>
-
-                        <option v-for="account in accounts" :key="account.id" :value="account.id">
-                            {{ account.account_name }}
-
-                            <template v-if="account.institution_name">
-                                — {{ account.institution_name }}
-                            </template>
-                        </option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="mb-2 block text-sm font-medium">
+                    <label for="csv_data" class="mb-2 block text-sm font-medium">
                         Paste CSV
                     </label>
 
-                    <textarea v-model="csv" rows="18"
-                        class="w-full rounded-md border bg-background px-3 py-3 font-mono text-sm"
+                    <textarea id="csv_data" v-model="csv" rows="18"
+                        class="w-full rounded-md border border-gray-400 bg-background px-3 py-3 font-mono text-sm focus:border-[#477b67] focus:ring-2 focus:ring-[#477b67]/20"
                         placeholder="Paste the CSV copied from your bank here..." />
                 </div>
 
-                <div v-if="errorMessage" class="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800">
-                    {{ errorMessage }}
-                </div>
-
-                <button type="button" class="rounded-md bg-primary px-4 py-2 text-primary-foreground"
+                <button type="button" class="rounded-md bg-[#477b67] px-4 py-2 font-medium text-white hover:opacity-90"
                     @click="previewCsv">
                     Preview Transactions
                 </button>
             </div>
         </div>
-        <div v-else class="rounded-xl border">
+
+        <!-- OFX / QFX / QBO Import -->
+        <div v-if="
+            financialAccountId &&
+            importType === 'ofx' &&
+            supportsOfx
+        " class="rounded-xl border border-gray-300">
             <div class="px-6 py-4">
                 <div class="font-medium">
-                    OFX Import
+                    OFX / QFX / QBO Import
                 </div>
 
                 <div class="mt-1 text-sm text-muted-foreground">
-                    Upload a OFX file downloaded from your bank.
+                    Upload a transaction file downloaded from your bank.
                 </div>
             </div>
 
-            <div class="border-t px-6 py-6">
-                <form @submit.prevent="submitQfx" class="space-y-6">
-
-                    <!-- Account -->
-                    <div>
-                        <label for="financial_account_id" class="mb-2 block text-sm font-medium">
-                            Account
-                        </label>
-
-                        <select id="financial_account_id" v-model="ofxForm.financial_account_id"
-                            class="w-full rounded-md border px-3 py-2">
-                            <option value="">
-                                Select an account
-                            </option>
-
-                            <option v-for="account in accounts" :key="account.id" :value="account.id">
-                                {{ account.account_name }}
-                            </option>
-                        </select>
-                    </div>
-
-                    <!-- Import Profile -->
-                    <div>
-                        <label for="transaction_import_profile_id" class="mb-2 block text-sm font-medium">
-                            Import Profile
-                        </label>
-
-                        <select id="transaction_import_profile_id" v-model="selectedProfileId"
-                            class="w-full rounded-md border px-3 py-2">
-                            <option :value="null">
-                                Select an import profile
-                            </option>
-
-                            <option v-for="profile in profiles" :key="profile.id" :value="profile.id">
-                                {{ profile.name }}
-                            </option>
-                        </select>
-                    </div>
-
-                    <!-- OFX File -->
+            <div class="border-t border-gray-300 px-6 py-6">
+                <form class="space-y-6" @submit.prevent="submitQfx">
+                    <!-- File -->
                     <div>
                         <label for="ofx_file" class="mb-2 block text-sm font-medium">
-                            OFX File
+                            OFX, QFX or QBO File
                         </label>
 
                         <input id="ofx_file" type="file" accept=".qfx,.qbo,.ofx,.txt"
-                            class="block w-full rounded-md border px-3 py-2" @change="selectQfxFile" />
+                            class="block w-full rounded-md border border-gray-400 px-3 py-2 focus:border-[#477b67] focus:ring-2 focus:ring-[#477b67]/20"
+                            @change="selectQfxFile" />
                     </div>
 
                     <!-- Submit -->
                     <button type="submit"
-                        class="rounded-md bg-[#477b67] px-4 py-2 font-medium text-white hover:opacity-90"
+                        class="rounded-md bg-[#477b67] px-4 py-2 font-medium text-white hover:opacity-90 disabled:opacity-50"
                         :disabled="ofxForm.processing">
                         Preview Transactions
                     </button>
-
                 </form>
             </div>
         </div>
 
-        <div v-if="preview.length" class="overflow-hidden rounded-xl border">
-            <div class="flex items-center justify-between border-b bg-muted/40 px-4 py-3">
+        <!-- Transaction Preview -->
+        <div v-if="preview.length" class="overflow-hidden rounded-xl border border-gray-300">
+            <!-- Preview Header -->
+            <div
+                class="flex flex-wrap items-center justify-between gap-4 border-b border-gray-300 bg-muted/40 px-4 py-3">
                 <div class="font-medium">
                     Transaction Preview
                 </div>
-                <div class="text-sm text-muted-foreground">
-                    {{ preview.length }} total
-                    · {{ newTransactions.length }} new
-                    · {{ duplicateTransactions.length }} already imported
-                </div>
-                <div class="flex items-center justify-between border-b bg-muted/40 px-4 py-3">
 
-                    <div class="flex items-center gap-4">
-                        <div class="text-sm text-muted-foreground">
-                            {{ preview.length }} total
-                            · {{ newTransactions.length }} new
-                            · {{ duplicateTransactions.length }} already imported
-                        </div>
-
-                        <button v-if="newTransactions.length" type="button"
-                            class="rounded-md bg-[#477b67] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-                            @click="importTransactions">
-                            Import {{ newTransactions.length }} New
-                        </button>
+                <div class="flex items-center gap-4">
+                    <div class="text-sm text-muted-foreground">
+                        {{ preview.length }} total
+                        · {{ newTransactions.length }} new
+                        · {{ duplicateTransactions.length }} already imported
                     </div>
+
+                    <button v-if="newTransactions.length" type="button"
+                        class="rounded-md bg-[#477b67] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+                        @click="importTransactions">
+                        Import {{ newTransactions.length }} New
+                    </button>
                 </div>
-
-
             </div>
 
+            <!-- Preview Table -->
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
-                    <thead class="border-b bg-muted">
+                    <thead class="border-b border-gray-300 bg-muted">
                         <tr>
-                            <th class="p-3 text-left">Date</th>
-                            <th class="p-3 text-left">Payee</th>
-                            <th class="p-3 text-right">Amount</th>
-                            <th class="p-3 text-left">Status</th>
+                            <th class="p-3 text-left">
+                                Date
+                            </th>
+
+                            <th class="p-3 text-left">
+                                Payee
+                            </th>
+
+                            <th class="p-3 text-right">
+                                Amount
+                            </th>
+
+                            <th class="p-3 text-left">
+                                Status
+                            </th>
                         </tr>
                     </thead>
 
                     <tbody>
-                        <tr v-for="(transaction, index) in preview" :key="index" class="border-b last:border-b-0">
+                        <tr v-for="(transaction, index) in preview" :key="index"
+                            class="border-b border-gray-300 last:border-b-0">
                             <td class="whitespace-nowrap p-3">
                                 {{ transaction.transaction_date }}
                             </td>
@@ -1083,16 +1109,23 @@ async function importTransactions(): Promise<void> {
                                 {{
                                     new Intl.NumberFormat('en-AU', {
                                         style: 'currency',
-                                        currency: transaction.currency || 'AUD',
-                                    }).format(Number(transaction.amount))
+                                        currency:
+                                            transaction.currency || 'AUD',
+                                    }).format(
+                                        Number(transaction.amount)
+                                    )
                                 }}
                             </td>
+
                             <td class="p-3">
                                 <span v-if="transaction.status === 'new'" class="font-medium text-emerald-700">
                                     New
                                 </span>
 
-                                <span v-else-if="transaction.status === 'duplicate'" class="text-muted-foreground">
+                                <span v-else-if="
+                                    transaction.status ===
+                                    'duplicate'
+                                " class="text-muted-foreground">
                                     Already imported
                                 </span>
                             </td>

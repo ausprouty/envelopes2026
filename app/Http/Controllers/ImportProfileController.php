@@ -23,6 +23,19 @@ class ImportProfileController extends Controller
         );
     }
 
+    public function edit(
+        Household $household,
+        TransactionImportProfile $importProfile
+    ): Response {
+        return Inertia::render(
+            'households/import-profiles/Edit',
+            [
+                'household' => $household,
+                'profile' => $importProfile,
+            ]
+        );
+    }
+
     public function index(
         Household $household
     ): Response {
@@ -50,7 +63,84 @@ class ImportProfileController extends Controller
         );
     }
 
-     public function store(
+    public function update(
+        Request $request,
+        Household $household,
+        TransactionImportProfile $importProfile
+    ): RedirectResponse {
+        $validated = $request->validate([
+            'amount_column' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'credit_column' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'date_column' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'date_format' => [
+                'nullable',
+                'string',
+                'max:30',
+            ],
+
+            'debit_column' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'description_column' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'description_field' => [
+                'nullable',
+                'in:NAME,MEMO',
+            ],
+
+            'format' => [
+                'required',
+                'in:csv,ofx',
+            ],
+
+            'header_signature' => [
+                'nullable',
+                'string',
+            ],
+
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
+            'payee_field' => [
+                'nullable',
+                'in:NAME,MEMO',
+            ],
+        ]);
+
+        $importProfile->update($validated);
+
+        return redirect()->route(
+            'households.import-profiles.index',
+            $household
+        );
+    }
+
+    public function store(
         Request $request,
         Household $household
     ): RedirectResponse {
@@ -122,7 +212,7 @@ class ImportProfileController extends Controller
 
         return redirect()
             ->route(
-                'import-profiles.index',
+                'households.import-profiles.index',
                 $household
             );
     }

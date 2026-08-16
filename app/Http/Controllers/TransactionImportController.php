@@ -161,13 +161,17 @@ class TransactionImportController extends Controller
     }
 
     public function create(
-        Request $request,
         Household $household
     ): Response {
         return Inertia::render('households/transactions/Import', [
             'household' => $household,
 
             'accounts' => FinancialAccount::query()
+                ->with([
+                    'importProfiles' => function ($query) {
+                        $query->orderBy('name');
+                    },
+                ])
                 ->where('household_id', $household->id)
                 ->where('is_active', true)
                 ->orderBy('account_name')
@@ -176,20 +180,6 @@ class TransactionImportController extends Controller
                     'account_name',
                     'institution_name',
                     'currency',
-                ]),
-
-            'profiles' => TransactionImportProfile::query()
-                ->orderBy('name')
-                ->get([
-                    'id',
-                    'name',
-                    'header_signature',
-                    'date_column',
-                    'description_column',
-                    'amount_column',
-                    'debit_column',
-                    'credit_column',
-                    'date_format',
                 ]),
         ]);
     }
@@ -255,6 +245,7 @@ class TransactionImportController extends Controller
             'integer',
             'exists:financial_accounts,id',
         ],
+
         'ofx_file' => [
             'required',
             'file',
@@ -264,15 +255,16 @@ class TransactionImportController extends Controller
     ]);
 
     $account = FinancialAccount::query()
-        ->with('importProfile')
+        ->with('importProfiles')
         ->where('household_id', $household->id)
         ->findOrFail($validated['financial_account_id']);
 
-    $profile = $account->importProfile;
+    $profile = $account->importProfiles
+        ->firstWhere('format', 'ofx');
 
     if (! $profile) {
         return response()->json([
-            'message' => 'This account does not have an import profile assigned.',
+            'message' => 'This account does not have an OFX import profile assigned.',
         ], 422);
     }
 
@@ -303,7 +295,6 @@ class TransactionImportController extends Controller
         'transactions' => $transactions,
     ]);
 }
-
 
     public function store(
         Request $request,

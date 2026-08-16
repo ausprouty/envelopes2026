@@ -3,26 +3,29 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class TransactionImportProfile extends Model
 {
     protected $fillable = [
-        'name',
+        'amount_column',
+        'credit_column',
+        'date_column',
+        'date_format',
+        'debit_column',
+        'description_column',
+        'description_field',
         'format',
         'header_signature',
-        'date_column',
-        'description_column',
-        'amount_column',
-        'debit_column',
-        'credit_column',
-        'date_format',
+        'name',
         'payee_field',
-        'description_field',
     ];
 
-    public function financialAccounts(): HasMany
+    public function financialAccounts(): BelongsToMany
     {
-        return $this->hasMany(FinancialAccount::class);
+        return $this->belongsToMany(
+            FinancialAccount::class,
+            'financial_account_import_profile'
+        );
     }
 }

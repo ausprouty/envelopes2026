@@ -131,6 +131,17 @@ Route::middleware([
             '/import-profiles/create',
             [ImportProfileController::class, 'create']
         )->name('import-profiles.create');
+
+        Route::get(
+            '/import-profiles/{importProfile}/edit',
+            [ImportProfileController::class, 'edit']
+        )->name('households.import-profiles.edit');
+
+        Route::put(
+            '/import-profiles/{importProfile}',
+            [ImportProfileController::class, 'update']
+        )->name('households.import-profiles.update');
+
         Route::post(
             '/income-allocations',
             [IncomeAllocationController::class, 'store']

@@ -85,6 +85,8 @@ class FinancialAccountController extends Controller
             404
         );
 
+        $financialAccount->load('importProfiles');
+
         return Inertia::render('households/accounts/Edit', [
             'account' => $financialAccount,
 
@@ -101,30 +103,38 @@ class FinancialAccountController extends Controller
                     'name',
                     'format',
                 ]),
+
+            'selectedImportProfileIds' => $financialAccount
+                ->importProfiles
+                ->pluck('id')
+                ->values(),
         ]);
     }
+public function update(
+    Request $request,
+    Household $household,
+    FinancialAccount $financialAccount
+): RedirectResponse {
+    abort_unless(
+        $financialAccount->household_id === $household->id,
+        404
+    );
 
-    public function update(
-        Request $request,
-        Household $household,
-        FinancialAccount $financialAccount
-    ): RedirectResponse {
+    $validated = $this->validateAccount($request);
 
+    $importProfileIds = $validated['import_profile_ids'] ?? [];
 
-        abort_unless(
-            $financialAccount->household_id === $household->id,
-            404
-        );
+    unset($validated['import_profile_ids']);
 
+    $financialAccount->update($validated);
 
+    $financialAccount
+        ->importProfiles()
+        ->sync($importProfileIds);
 
-        $financialAccount->update(
-            $this->validateAccount($request)
-        );
-
-        return redirect()
-            ->route('households.accounts.index', $household);
-    }
+    return redirect()
+        ->route('households.accounts.index', $household);
+}
 
     private function validateAccount(Request $request): array
     {
@@ -147,6 +157,15 @@ class FinancialAccountController extends Controller
             'currency' => ['required', 'string', 'size:3'],
 
             'display_order' => ['integer'],
+
+            'import_profile_ids' => [
+                'array',
+            ],
+
+            'import_profile_ids.*' => [
+                'integer',
+                'exists:transaction_import_profiles,id',
+            ],
 
             'include_in_net_worth' => ['boolean'],
 

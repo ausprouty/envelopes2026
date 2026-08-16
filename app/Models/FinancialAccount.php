@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class FinancialAccount extends Model
 {
@@ -20,7 +21,6 @@ class FinancialAccount extends Model
         'institution_name',
         'is_active',
         'legacy_paidby_id',
-        'transaction_import_profile_id',
         'warning_balance',
         'website',
     ];
@@ -44,15 +44,12 @@ class FinancialAccount extends Model
         return $this->belongsTo(Household::class);
     }
 
-    public function importProfile()
+    public function importProfiles(): BelongsToMany
     {
-        return $this->belongsTo(
+        return $this->belongsToMany(
             TransactionImportProfile::class,
-            'transaction_import_profile_id'
+            'financial_account_import_profile'
         );
     }
-    public function transactionImportProfile(): BelongsTo
-    {
-        return $this->belongsTo(TransactionImportProfile::class);
-    }
+   
 }

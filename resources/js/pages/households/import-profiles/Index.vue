@@ -69,7 +69,10 @@ const props = defineProps<{
                 <tbody>
                     <tr v-for="profile in profiles" :key="profile.id" class="border-b last:border-b-0">
                         <td class="px-4 py-3 font-medium">
-                            {{ profile.name }}
+                            <Link :href="`/households/${household.id}/import-profiles/${profile.id}/edit`"
+                                class="text-[#477b67] hover:underline">
+                                {{ profile.name }}
+                            </Link>
                         </td>
 
                         <td class="px-4 py-3">
