@@ -11,12 +11,24 @@ return new class extends Migration
         Schema::create('financial_account_import_profile', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('financial_account_id')
-                ->constrained('financial_accounts')
+            $table->foreignId('financial_account_id');
+
+            $table->foreign(
+                'financial_account_id',
+                'faip_account_fk'
+            )
+                ->references('id')
+                ->on('financial_accounts')
                 ->cascadeOnDelete();
 
-            $table->foreignId('transaction_import_profile_id')
-                ->constrained('transaction_import_profiles')
+            $table->foreignId('transaction_import_profile_id');
+
+            $table->foreign(
+                'transaction_import_profile_id',
+                'faip_profile_fk'
+            )
+                ->references('id')
+                ->on('transaction_import_profiles')
                 ->cascadeOnDelete();
 
             $table->timestamps();
