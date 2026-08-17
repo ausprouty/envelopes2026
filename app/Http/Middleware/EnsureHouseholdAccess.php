@@ -25,14 +25,21 @@ class EnsureHouseholdAccess
 
         // Administrators may access all households.
         if ($user->role === 'admin') {
+            $request->attributes->set('household_role', 'admin');
+
             return $next($request);
         }
 
-        $hasAccess = $user->households()
+        $householdAccess = $user->households()
             ->whereKey($household->id)
-            ->exists();
+            ->first();
 
-        abort_unless($hasAccess, 403);
+        abort_unless($householdAccess, 403);
+
+        $request->attributes->set(
+            'household_role',
+            $householdAccess->pivot->role
+        );
 
         return $next($request);
     }

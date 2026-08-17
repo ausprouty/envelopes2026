@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\CategoryTransfer;
+use App\Models\FinancialAccount;
 use App\Models\Household;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
@@ -21,6 +22,23 @@ class DashboardController extends Controller
         if (! in_array($context, ['household', 'ministry_au'], true)) {
             $context = 'household';
         }
+
+        $accounts = FinancialAccount::query()
+            ->where('household_id', $household->id)
+            ->where('is_active', true)
+            ->withMax('transactions', 'transaction_date')
+            ->orderBy('display_order')
+            ->orderBy('account_name')
+            ->get()
+            ->map(function (FinancialAccount $account) {
+                return [
+                    'id' => $account->id,
+                    'account_name' => $account->account_name,
+                    'currency' => $account->currency,
+                    'latest_transaction_date' => $account->transactions_max_transaction_date,
+                ];
+            })
+            ->values();
 
         $hasAuMinistryCategories = Category::query()
             ->where('household_id', $household->id)
@@ -85,21 +103,19 @@ class DashboardController extends Controller
             ]);
 
         return Inertia::render('households/dashboard/Index', [
+            'accounts' => $accounts,
+            'dashboardContext' => $context,
+            'hasAuMinistryCategories' => $hasAuMinistryCategories,
+            'headings' => $headings,
             'household' => [
                 'id' => $household->id,
                 'household_name' => $household->household_name,
                 'default_currency' => $household->default_currency,
             ],
-
-            'headings' => $headings,
-
+            'householdRole' => $request->attributes->get('household_role'),
             'totalAvailable' => (float) $totalAvailable,
-
             'watchCategories' => $watchCategories,
 
-            'dashboardContext' => $context,
-
-            'hasAuMinistryCategories' => $hasAuMinistryCategories,
         ]);
     }
 

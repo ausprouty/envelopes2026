@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { CircleDollarSign, Eye, Shapes } from '@lucide/vue';
+import { ArrowRight, CircleDollarSign, Eye, Shapes } from '@lucide/vue';
 import { categoryColors } from '@/lib/categoryColors';
 import { categoryIcons } from '@/lib/categoryIcons';
 import type { CategoryIconName } from '@/lib/categoryIcons';
-
 
 type Heading = {
     id: number;
@@ -12,8 +11,8 @@ type Heading = {
     icon: CategoryIconName | null;
     dashboard_image: string | null;
     balance: number;
-
 };
+
 type WatchCategory = {
     id: number;
     name: string;
@@ -31,10 +30,8 @@ defineProps<{
     headings: Heading[];
     totalAvailable: number;
     watchCategories: WatchCategory[];
+    householdRole: 'admin' | 'member' | 'coach';
 }>();
-
-
-
 </script>
 
 <template>
@@ -74,7 +71,8 @@ defineProps<{
                         }}
                     </div>
 
-                    <Link :href="`/households/${household.id}/income-allocations/create`"
+                    <Link v-if="householdRole !== 'coach'"
+                        :href="`/households/${household.id}/income-allocations/create`"
                         class="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-white hover:underline">
                         Allocate Income
                         <ArrowRight class="h-4 w-4" />
@@ -108,33 +106,61 @@ defineProps<{
 
                 <!-- Watched envelopes -->
                 <div class="space-y-2 p-3">
-                    <Link v-for="category in watchCategories" :key="category.id"
-                        :href="`/households/${household.id}/dashboard/envelopes/${category.id}`"
-                        class="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm">
-                        <img v-if="category.dashboard_image" :src="`/images/categories/${category.dashboard_image}`"
-                            :alt="category.name" class="h-11 w-11 shrink-0 rounded-full object-cover" />
+                    <template v-for="category in watchCategories" :key="category.id">
+                        <Link v-if="householdRole !== 'coach'"
+                            :href="`/households/${household.id}/dashboard/envelopes/${category.id}`"
+                            class="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm">
+                            <img v-if="category.dashboard_image" :src="`/images/categories/${category.dashboard_image}`"
+                                :alt="category.name" class="h-11 w-11 shrink-0 rounded-full object-cover" />
 
-                        <div class="min-w-0 flex-1">
-                            <div class="truncate font-medium text-gray-900">
-                                {{ category.name }}
+                            <div class="min-w-0 flex-1">
+                                <div class="truncate font-medium text-gray-900">
+                                    {{ category.name }}
+                                </div>
+                            </div>
+
+                            <div class="whitespace-nowrap font-semibold" :class="category.current_balance < 0
+                                    ? 'text-red-600'
+                                    : 'text-gray-900'
+                                ">
+                                {{
+                                    Number(
+                                        category.current_balance ?? 0,
+                                    ).toLocaleString('en-US', {
+                                        style: 'currency',
+                                        currency:
+                                            household.default_currency ?? 'USD',
+                                    })
+                                }}
+                            </div>
+                        </Link>
+
+                        <div v-else class="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm">
+                            <img v-if="category.dashboard_image" :src="`/images/categories/${category.dashboard_image}`"
+                                :alt="category.name" class="h-11 w-11 shrink-0 rounded-full object-cover" />
+
+                            <div class="min-w-0 flex-1">
+                                <div class="truncate font-medium text-gray-900">
+                                    {{ category.name }}
+                                </div>
+                            </div>
+
+                            <div class="whitespace-nowrap font-semibold" :class="category.current_balance < 0
+                                    ? 'text-red-600'
+                                    : 'text-gray-900'
+                                ">
+                                {{
+                                    Number(
+                                        category.current_balance ?? 0,
+                                    ).toLocaleString('en-US', {
+                                        style: 'currency',
+                                        currency:
+                                            household.default_currency ?? 'USD',
+                                    })
+                                }}
                             </div>
                         </div>
-
-                        <div class="whitespace-nowrap font-semibold" :class="category.current_balance < 0
-                            ? 'text-red-600'
-                            : 'text-gray-900'
-                            ">
-                            {{
-                                Number(
-                                    category.current_balance ?? 0,
-                                ).toLocaleString('en-US', {
-                                    style: 'currency',
-                                    currency:
-                                        household.default_currency ?? 'USD',
-                                })
-                            }}
-                        </div>
-                    </Link>
+                    </template>
                 </div>
             </div>
 
@@ -154,8 +180,14 @@ defineProps<{
                             </h2>
 
                             <p class="mt-1 text-sm text-gray-600">
-                                How is your spending in these categories looking?
-                                Drill down to see the details.
+                                <template v-if="householdRole === 'coach'">
+                                    How are the envelope balances looking?
+                                </template>
+
+                                <template v-else>
+                                    How is your spending in these categories looking?
+                                    Drill down to see the details.
+                                </template>
                             </p>
                         </div>
                     </div>
@@ -163,40 +195,80 @@ defineProps<{
 
                 <!-- Category rows -->
                 <div class="space-y-3 p-5">
-                    <Link v-for="(heading, index) in headings" :key="heading.id"
-                        :href="`/households/${household.id}/dashboard/categories/${heading.id}`" :class="[
-                            'flex items-center gap-3 rounded-2xl border border-white/70 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md',
+                    <template v-for="(heading, index) in headings" :key="heading.id">
+                        <Link v-if="householdRole !== 'coach'"
+                            :href="`/households/${household.id}/dashboard/categories/${heading.id}`" :class="[
+                                'flex items-center gap-3 rounded-2xl border border-white/70 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md',
+                                categoryColors[index % categoryColors.length].heading,
+                            ]">
+                            <img v-if="heading.dashboard_image" :src="`/images/categories/${heading.dashboard_image}`"
+                                :alt="heading.name" class="h-14 w-14 shrink-0 rounded-full object-cover" />
+
+                            <div v-else class="flex h-11 w-11 shrink-0 items-center justify-center text-[#477b67]">
+                                <component :is="categoryIcons[
+                                    heading.icon ??
+                                    'circle-dollar-sign'
+                                    ]
+                                    " class="h-6 w-6" />
+                            </div>
+
+                            <div class="min-w-0 flex-1">
+                                <div class="truncate font-medium uppercase text-gray-900 dark:text-white">
+                                    {{ heading.name }}
+                                </div>
+                            </div>
+
+                            <div class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">
+                                {{
+                                    Number(heading.balance ?? 0).toLocaleString(
+                                        'en-US',
+                                        {
+                                            style: 'currency',
+                                            currency:
+                                                household.default_currency ??
+                                                'USD',
+                                        },
+                                    )
+                                }}
+                            </div>
+                        </Link>
+
+                        <div v-else :class="[
+                            'flex items-center gap-3 rounded-2xl border border-white/70 p-4 shadow-sm',
                             categoryColors[index % categoryColors.length].heading,
                         ]">
-                        <img v-if="heading.dashboard_image" :src="`/images/categories/${heading.dashboard_image}`"
-                            :alt="heading.name" class="h-14 w-14 shrink-0 rounded-full object-cover" />
+                            <img v-if="heading.dashboard_image" :src="`/images/categories/${heading.dashboard_image}`"
+                                :alt="heading.name" class="h-14 w-14 shrink-0 rounded-full object-cover" />
 
-                        <div v-else class="flex h-11 w-11 shrink-0 items-center justify-center text-[#477b67]">
-                            <component :is="categoryIcons[
-                                heading.icon ?? 'circle-dollar-sign'
-                            ]
-                                " class="h-6 w-6" />
-                        </div>
+                            <div v-else class="flex h-11 w-11 shrink-0 items-center justify-center text-[#477b67]">
+                                <component :is="categoryIcons[
+                                    heading.icon ??
+                                    'circle-dollar-sign'
+                                    ]
+                                    " class="h-6 w-6" />
+                            </div>
 
-                        <div class="min-w-0 flex-1">
-                            <div class="truncate font-medium uppercase text-gray-900 dark:text-white">
-                                {{ heading.name }}
+                            <div class="min-w-0 flex-1">
+                                <div class="truncate font-medium uppercase text-gray-900 dark:text-white">
+                                    {{ heading.name }}
+                                </div>
+                            </div>
+
+                            <div class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">
+                                {{
+                                    Number(heading.balance ?? 0).toLocaleString(
+                                        'en-US',
+                                        {
+                                            style: 'currency',
+                                            currency:
+                                                household.default_currency ??
+                                                'USD',
+                                        },
+                                    )
+                                }}
                             </div>
                         </div>
-
-                        <div class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">
-                            {{
-                                Number(heading.balance ?? 0).toLocaleString(
-                                    'en-US',
-                                    {
-                                        style: 'currency',
-                                        currency:
-                                            household.default_currency ?? 'USD',
-                                    },
-                                )
-                            }}
-                        </div>
-                    </Link>
+                    </template>
                 </div>
             </div>
         </div>

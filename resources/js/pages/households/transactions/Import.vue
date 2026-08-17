@@ -99,6 +99,10 @@ const showImportForm = ref(true);
 const recentTransactions = ref<RecentTransaction[]>([]);
 const loadingRecentTransactions = ref(false);
 
+const availableBalance = ref<number | null>(null);
+const balanceAsOf = ref<string | null>(null);
+const ledgerBalance = ref<number | null>(null);
+
 /*
 |--------------------------------------------------------------------------
 | OFX / QFX Form
@@ -418,6 +422,15 @@ async function submitQfx(): Promise<void> {
 
     const data = await response.json();
 
+    availableBalance.value =
+        data.available_balance ?? null;
+
+    balanceAsOf.value =
+        data.balance_as_of ?? null;
+
+    ledgerBalance.value =
+        data.ledger_balance ?? null;
+
     preview.value = data.transactions.map(
         (transaction: PreviewTransaction) => ({
             ...transaction,
@@ -734,8 +747,17 @@ async function checkDuplicates(): Promise<void> {
             },
 
             body: JSON.stringify({
+                available_balance:
+                    availableBalance.value,
+
+                balance_as_of:
+                    balanceAsOf.value,
+
                 financial_account_id:
                     financialAccountId.value,
+
+                ledger_balance:
+                    ledgerBalance.value,
 
                 transactions:
                     preview.value.map(
@@ -833,12 +855,7 @@ async function importTransactions(): Promise<void> {
         return;
     }
 
-    if (newTransactions.value.length === 0) {
-        errorMessage.value =
-            'There are no new transactions to import.';
 
-        return;
-    }
 
     /*
     |----------------------------------------------------------------------
@@ -858,8 +875,17 @@ async function importTransactions(): Promise<void> {
             },
 
             body: JSON.stringify({
+                available_balance:
+                    availableBalance.value,
+
+                balance_as_of:
+                    balanceAsOf.value,
+
                 financial_account_id:
                     financialAccountId.value,
+
+                ledger_balance:
+                    ledgerBalance.value,
 
                 transactions:
                     newTransactions.value.map(

@@ -22,7 +22,7 @@ class UserController extends Controller
         ]);
     }
 
-      public function destroy(Request $request, User $user): RedirectResponse
+    public function destroy(Request $request, User $user): RedirectResponse
     {
         if ($request->user()?->id === $user->id) {
             return back()->withErrors([
@@ -119,11 +119,12 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'household_id' => ['required', 'exists:households,id'],
+            'household_role' => ['required', 'in:member,coach'],
         ]);
 
         $user->households()->sync([
             $validated['household_id'] => [
-                'role' => 'member',
+                'role' => $validated['household_role'],
             ],
         ]);
 

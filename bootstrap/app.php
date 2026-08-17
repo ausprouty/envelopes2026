@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AdminMiddleware;
 use App\Http\Middleware\EnsureHouseholdAccess;
+use App\Http\Middleware\EnsureHouseholdMember;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => AdminMiddleware::class,
             'household.access' => EnsureHouseholdAccess::class,
+            'household.member' => EnsureHouseholdMember::class,
         ]);
 
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);

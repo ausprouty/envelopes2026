@@ -10,7 +10,13 @@ type User = {
     id: number;
     name: string;
     email: string;
-    households: Household[];
+    households: Array<
+        Household & {
+            pivot?: {
+                role?: 'member' | 'coach';
+            };
+        }
+    >;
 };
 
 const props = defineProps<{
@@ -18,9 +24,14 @@ const props = defineProps<{
     households: Household[];
 }>();
 
-const updateHousehold = (userId: number, householdId: number) => {
+const updateHousehold = (
+    userId: number,
+    householdId: number,
+    householdRole: 'member' | 'coach'
+) => {
     router.put(`/admin/users/${userId}/household`, {
         household_id: householdId,
+        household_role: householdRole,
     });
 };
 
@@ -71,6 +82,10 @@ const deleteUser = (user: User) => {
                         </th>
 
                         <th class="px-5 py-4 text-left text-sm font-semibold text-[#18332b]">
+                            Access
+                        </th>
+
+                        <th class="px-5 py-4 text-left text-sm font-semibold text-[#18332b]">
                             Actions
                         </th>
                     </tr>
@@ -95,10 +110,8 @@ const deleteUser = (user: User) => {
                                 :value="user.households[0]?.id ?? ''" @change="
                                     updateHousehold(
                                         user.id,
-                                        Number(
-                                            ($event.target as HTMLSelectElement)
-                                                .value
-                                        )
+                                        Number(($event.target as HTMLSelectElement).value),
+                                        user.households[0]?.pivot?.role ?? 'member'
                                     )
                                     ">
                                 <option value="" disabled>
@@ -108,6 +121,21 @@ const deleteUser = (user: User) => {
                                 <option v-for="household in props.households" :key="household.id" :value="household.id">
                                     {{ household.household_name }}
                                 </option>
+                            </select>
+                        </td>
+                        <!-- Access -->
+
+                        <td class="px-5 py-4">
+                            <select class="rounded-lg border border-[#aebbb5] bg-white px-3 py-2 text-[#18332b]"
+                                :value="user.households[0]?.pivot?.role ?? 'member'" @change="
+                                    updateHousehold(
+                                        user.id,
+                                        user.households[0]?.id ?? 0,
+                                        ($event.target as HTMLSelectElement).value as 'member' | 'coach'
+                                    )
+                                    ">
+                                <option value="member">Member</option>
+                                <option value="coach">Coach</option>
                             </select>
                         </td>
 

@@ -39,13 +39,6 @@ class QfxParser
                 : null;
 
             $transactions[] = [
-                'transaction_date' => $this->parseDate(
-                    $this->getTagValue(
-                        $transactionBlock,
-                        'DTPOSTED'
-                    )
-                ),
-
                 'amount' => $this->parseAmount(
                     $this->getTagValue(
                         $transactionBlock,
@@ -53,13 +46,20 @@ class QfxParser
                     )
                 ),
 
-                'payee' => $payee,
-
                 'description' => $description,
 
                 'external_id' => $this->getTagValue(
                     $transactionBlock,
                     'FITID'
+                ),
+
+                'payee' => $payee,
+
+                'transaction_date' => $this->parseDate(
+                    $this->getTagValue(
+                        $transactionBlock,
+                        'DTPOSTED'
+                    )
                 ),
             ];
         }
@@ -71,6 +71,67 @@ class QfxParser
         }
 
         return $transactions;
+    }
+
+    public function parseBalances(string $contents): array
+    {
+        $ledgerBlock = $this->getBlock(
+            $contents,
+            'LEDGERBAL'
+        );
+
+        $availableBlock = $this->getBlock(
+            $contents,
+            'AVAILBAL'
+        );
+
+        $ledgerBalance = $ledgerBlock
+            ? $this->parseAmount(
+                $this->getTagValue($ledgerBlock, 'BALAMT')
+            )
+            : null;
+
+        $availableBalance = $availableBlock
+            ? $this->parseAmount(
+                $this->getTagValue($availableBlock, 'BALAMT')
+            )
+            : null;
+
+        $ledgerAsOf = $ledgerBlock
+            ? $this->parseDateTime(
+                $this->getTagValue($ledgerBlock, 'DTASOF')
+            )
+            : null;
+
+        $availableAsOf = $availableBlock
+            ? $this->parseDateTime(
+                $this->getTagValue($availableBlock, 'DTASOF')
+            )
+            : null;
+
+        return [
+            'available_balance' => $availableBalance,
+            'balance_as_of' => $ledgerAsOf ?? $availableAsOf,
+            'ledger_balance' => $ledgerBalance,
+        ];
+    }
+
+    private function getBlock(
+        string $contents,
+        string $tag
+    ): ?string {
+        if (
+            preg_match(
+                '/<' . preg_quote($tag, '/') . '>(.*?)<\/'
+                . preg_quote($tag, '/') . '>/si',
+                $contents,
+                $match
+            )
+        ) {
+            return $match[1];
+        }
+
+        return null;
     }
 
     private function getTagValue(
@@ -122,5 +183,30 @@ class QfxParser
             . substr($date, 4, 2)
             . '-'
             . substr($date, 6, 2);
+    }
+
+    private function parseDateTime(?string $value): ?string
+    {
+        if (! $value) {
+            return null;
+        }
+
+        $dateTime = substr($value, 0, 14);
+
+        if (! preg_match('/^\d{14}$/', $dateTime)) {
+            return $this->parseDate($value);
+        }
+
+        return substr($dateTime, 0, 4)
+            . '-'
+            . substr($dateTime, 4, 2)
+            . '-'
+            . substr($dateTime, 6, 2)
+            . ' '
+            . substr($dateTime, 8, 2)
+            . ':'
+            . substr($dateTime, 10, 2)
+            . ':'
+            . substr($dateTime, 12, 2);
     }
 }

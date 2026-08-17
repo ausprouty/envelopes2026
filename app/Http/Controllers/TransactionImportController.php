@@ -278,6 +278,8 @@ class TransactionImportController extends Controller
             $profile->description_field
         );
 
+        $balances = $qfxParser->parseBalances($contents);
+
         $transactions = collect($transactions)
             ->map(function (array $transaction) use ($account) {
                 return [
@@ -292,6 +294,9 @@ class TransactionImportController extends Controller
             ->values();
 
         return response()->json([
+            'available_balance' => $balances['available_balance'],
+            'balance_as_of' => $balances['balance_as_of'],
+            'ledger_balance' => $balances['ledger_balance'],
             'transactions' => $transactions,
         ]);
     }
@@ -326,10 +331,11 @@ class TransactionImportController extends Controller
         Household $household
     ) {
         $validated = $request->validate([
+            'available_balance' => ['nullable', 'numeric'],
+            'balance_as_of' => ['nullable', 'date'],
             'financial_account_id' => ['required', 'integer'],
-
+            'ledger_balance' => ['nullable', 'numeric'],
             'transactions' => ['required', 'array'],
-
             'transactions.*.transaction_date' => ['required', 'date'],
             'transactions.*.payee' => ['required', 'string'],
             'transactions.*.description' => ['nullable', 'string'],
@@ -341,6 +347,26 @@ class TransactionImportController extends Controller
         $account = FinancialAccount::query()
             ->where('household_id', $household->id)
             ->findOrFail($validated['financial_account_id']);
+        $balanceUpdates = [];
+
+        if (($validated['available_balance'] ?? null) !== null) {
+            $balanceUpdates['available_balance'] =
+                $validated['available_balance'];
+        }
+
+        if (($validated['balance_as_of'] ?? null) !== null) {
+            $balanceUpdates['balance_as_of'] =
+                $validated['balance_as_of'];
+        }
+
+        if (($validated['ledger_balance'] ?? null) !== null) {
+            $balanceUpdates['ledger_balance'] =
+                $validated['ledger_balance'];
+        }
+
+        if ($balanceUpdates !== []) {
+            $account->update($balanceUpdates);
+        }
 
         $imported = 0;
         $skipped = 0;

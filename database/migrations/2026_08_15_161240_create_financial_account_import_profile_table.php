@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('financial_account_import_profile')) {
+            return;
+        }
+
         Schema::create('financial_account_import_profile', function (Blueprint $table) {
             $table->id();
 
