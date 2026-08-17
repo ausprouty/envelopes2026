@@ -234,67 +234,92 @@ class TransactionImportController extends Controller
         ]);
     }
 
-   public function previewOfx(
-    Request $request,
-    Household $household,
-    QfxParser $qfxParser
-): JsonResponse {
-    $validated = $request->validate([
-        'financial_account_id' => [
-            'required',
-            'integer',
-            'exists:financial_accounts,id',
-        ],
+    public function previewOfx(
+        Request $request,
+        Household $household,
+        QfxParser $qfxParser
+    ): JsonResponse {
+        $validated = $request->validate([
+            'financial_account_id' => [
+                'required',
+                'integer',
+                'exists:financial_accounts,id',
+            ],
 
-        'ofx_file' => [
-            'required',
-            'file',
-            'extensions:qfx,qbo,ofx,txt',
-            'max:10240',
-        ],
-    ]);
+            'ofx_file' => [
+                'required',
+                'file',
+                'extensions:qfx,qbo,ofx,txt',
+                'max:10240',
+            ],
+        ]);
 
-    $account = FinancialAccount::query()
-        ->with('importProfiles')
-        ->where('household_id', $household->id)
-        ->findOrFail($validated['financial_account_id']);
+        $account = FinancialAccount::query()
+            ->with('importProfiles')
+            ->where('household_id', $household->id)
+            ->findOrFail($validated['financial_account_id']);
 
-    $profile = $account->importProfiles
-        ->firstWhere('format', 'ofx');
+        $profile = $account->importProfiles
+            ->firstWhere('format', 'ofx');
 
-    if (! $profile) {
+        if (! $profile) {
+            return response()->json([
+                'message' => 'This account does not have an OFX import profile assigned.',
+            ], 422);
+        }
+
+        $contents = file_get_contents(
+            $request->file('ofx_file')->getRealPath()
+        );
+
+        $transactions = $qfxParser->parse(
+            $contents,
+            $profile->payee_field ?? 'MEMO',
+            $profile->description_field
+        );
+
+        $transactions = collect($transactions)
+            ->map(function (array $transaction) use ($account) {
+                return [
+                    'transaction_date' => $transaction['transaction_date'],
+                    'description' => $transaction['description'] ?? '',
+                    'payee' => $transaction['payee'] ?? '',
+                    'amount' => $transaction['amount'],
+                    'currency' => $account->currency,
+                    'external_id' => $transaction['external_id'],
+                ];
+            })
+            ->values();
+
         return response()->json([
-            'message' => 'This account does not have an OFX import profile assigned.',
-        ], 422);
+            'transactions' => $transactions,
+        ]);
     }
 
-    $contents = file_get_contents(
-        $request->file('ofx_file')->getRealPath()
-    );
+    public function recentTransactions(
+        Household $household,
+        FinancialAccount $financialAccount
+    ) {
+        abort_unless(
+            $financialAccount->household_id === $household->id,
+            404
+        );
 
-    $transactions = $qfxParser->parse(
-        $contents,
-        $profile->payee_field ?? 'MEMO',
-        $profile->description_field
-    );
-
-    $transactions = collect($transactions)
-        ->map(function (array $transaction) use ($account) {
-            return [
-                'transaction_date' => $transaction['transaction_date'],
-                'description' => $transaction['description'] ?? '',
-                'payee' => $transaction['payee'] ?? '',
-                'amount' => $transaction['amount'],
-                'currency' => $account->currency,
-                'external_id' => $transaction['external_id'],
-            ];
-        })
-        ->values();
-
-    return response()->json([
-        'transactions' => $transactions,
-    ]);
-}
+        return Transaction::query()
+            ->where('household_id', $household->id)
+            ->where('financial_account_id', $financialAccount->id)
+            ->orderByDesc('transaction_date')
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get([
+                'id',
+                'transaction_date',
+                'payee',
+                'description',
+                'amount',
+                'currency',
+            ]);
+    }
 
     public function store(
         Request $request,

@@ -21,12 +21,29 @@ Route::middleware(['auth', 'admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
-        // User management routes
         Route::get(
             '/users',
             [UserController::class, 'index']
         )->name('users.index');
 
+        Route::post(
+            '/users',
+            [UserController::class, 'store']
+        )->name('users.store');
+
+        Route::get(
+            '/users/create',
+            [UserController::class, 'create']
+        )->name('users.create');
+
+        Route::get('/users/{user}/edit', [UserController::class, 'edit'])
+            ->name('users.edit');
+
+        Route::put('/users/{user}', [UserController::class, 'update'])
+            ->name('users.update');
+
+        Route::delete('/users/{user}', [UserController::class, 'destroy'])
+            ->name('users.destroy');
         Route::put(
             '/users/{user}/household',
             [UserController::class, 'updateHousehold']
@@ -66,6 +83,13 @@ Route::middleware([
             '/accounts/{financialAccount}',
             [FinancialAccountController::class, 'update']
         )->name('accounts.update');
+
+        Route::get(
+            '/accounts/{financialAccount}/recent-transactions',
+            [TransactionImportController::class, 'recentTransactions']
+        )->name('transactions.import.recent');
+
+
 
         // Category routes
         Route::get(

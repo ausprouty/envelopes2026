@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ChevronDown, ChevronUp, Upload } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 /*
 |--------------------------------------------------------------------------
@@ -11,6 +11,22 @@ import { computed, ref } from 'vue';
 
 type ImportType = 'csv' | 'ofx';
 type TransactionStatus = 'new' | 'duplicate';
+
+interface DuplicateCheckTransaction {
+    amount: number;
+    external_id?: string | null;
+    import_hash: string;
+    payee: string;
+    transaction_date: string;
+}
+
+interface FinancialAccount {
+    account_name: string;
+    currency: string;
+    id: number;
+    import_profiles: ImportProfile[];
+    institution_name: string | null;
+}
 
 interface Household {
     id: number;
@@ -32,14 +48,6 @@ interface ImportProfile {
     payee_field: string | null;
 }
 
-interface FinancialAccount {
-    account_name: string;
-    currency: string;
-    id: number;
-    import_profiles: ImportProfile[];
-    institution_name: string | null;
-}
-
 interface PreviewTransaction {
     amount: number;
     currency: string;
@@ -50,14 +58,16 @@ interface PreviewTransaction {
     status?: TransactionStatus;
     transaction_date: string;
 }
-
-interface DuplicateCheckTransaction {
+interface RecentTransaction {
     amount: number;
-    external_id?: string | null;
-    import_hash: string;
-    payee: string;
+    currency: string;
+    description: string | null;
+    id: number;
+    payee: string | null;
     transaction_date: string;
 }
+
+
 
 /*
 |--------------------------------------------------------------------------
@@ -86,6 +96,8 @@ const matchedProfile = ref<ImportProfile | null>(null);
 
 const errorMessage = ref('');
 const showImportForm = ref(true);
+const recentTransactions = ref<RecentTransaction[]>([]);
+const loadingRecentTransactions = ref(false);
 
 /*
 |--------------------------------------------------------------------------
@@ -151,6 +163,14 @@ function csrfToken(): string {
             .querySelector('meta[name="csrf-token"]')
             ?.getAttribute('content') ?? ''
     );
+}
+function formatDate(value: string): string {
+    return new Intl.DateTimeFormat('en-AU', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'UTC',
+    }).format(new Date(value));
 }
 
 function parseCsvLine(line: string): string[] {
@@ -240,6 +260,49 @@ function convertDate(value: string): string | null {
 
     return `${year}-${month}-${day}`;
 }
+
+/*
+|--------------------------------------------------------------------------
+| Recent Transactions
+|--------------------------------------------------------------------------
+*/
+
+async function loadRecentTransactions(): Promise<void> {
+    recentTransactions.value = [];
+
+    if (!financialAccountId.value) {
+        return;
+    }
+
+    loadingRecentTransactions.value = true;
+
+    try {
+        const response = await fetch(
+            `/households/${props.household.id}/accounts/${financialAccountId.value}/recent-transactions`,
+            {
+                headers: {
+                    'Accept': 'application/json',
+                },
+            }
+        );
+
+        if (!response.ok) {
+            return;
+        }
+
+        recentTransactions.value =
+            await response.json();
+    } finally {
+        loadingRecentTransactions.value = false;
+    }
+}
+
+watch(
+    financialAccountId,
+    () => {
+        loadRecentTransactions();
+    }
+);
 
 /*
 |--------------------------------------------------------------------------
@@ -885,6 +948,79 @@ async function importTransactions(): Promise<void> {
                     </template>
                 </option>
             </select>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div v-if="financialAccountId" class="overflow-hidden rounded-xl border border-gray-300">
+            <div class="border-b border-gray-300 bg-muted/40 px-4 py-3">
+                <div class="font-medium">
+                    Recently imported into this account
+                </div>
+
+                <div class="mt-1 text-sm text-muted-foreground">
+                    Check these before importing another file.
+                </div>
+            </div>
+
+            <div v-if="loadingRecentTransactions" class="p-4 text-sm text-muted-foreground">
+                Loading recent transactions...
+            </div>
+
+            <div v-else-if="recentTransactions.length === 0" class="p-4 text-sm text-muted-foreground">
+                No transactions have been imported into this account yet.
+            </div>
+
+            <div v-else class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="border-b border-gray-300 bg-muted">
+                        <tr>
+                            <th class="p-3 text-left">
+                                Date
+                            </th>
+
+                            <th class="p-3 text-left">
+                                Payee
+                            </th>
+
+                            <th class="p-3 text-right">
+                                Amount
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr v-for="transaction in recentTransactions" :key="transaction.id"
+                            class="border-b border-gray-300 last:border-b-0">
+                            <td class="whitespace-nowrap p-3">
+                                {{ formatDate(transaction.transaction_date) }}
+                            </td>
+
+                            <td class="p-3">
+                                {{
+                                    transaction.payee ||
+                                    transaction.description ||
+                                    '—'
+                                }}
+                            </td>
+
+                            <td class="whitespace-nowrap p-3 text-right" :class="transaction.amount < 0
+                                ? 'text-red-600'
+                                : 'text-emerald-700'
+                                ">
+                                {{
+                                    new Intl.NumberFormat('en-AU', {
+                                        style: 'currency',
+                                        currency:
+                                            transaction.currency || 'AUD',
+                                    }).format(
+                                        Number(transaction.amount)
+                                    )
+                                }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Import Method -->

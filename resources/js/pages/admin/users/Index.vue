@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 
 type Household = {
     id: number;
@@ -23,23 +23,38 @@ const updateHousehold = (userId: number, householdId: number) => {
         household_id: householdId,
     });
 };
+
+const deleteUser = (user: User) => {
+    if (!confirm(`Delete ${user.name}? This cannot be undone.`)) {
+        return;
+    }
+
+    router.delete(`/admin/users/${user.id}`);
+};
 </script>
 
 <template>
     <div class="mx-auto max-w-5xl p-6">
-        <div class="mb-8">
-            <h1 class="text-3xl font-bold text-[#18332b]">
-                User Administration
-            </h1>
+        <!-- Page heading -->
+        <div class="mb-8 flex items-start justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-[#18332b]">
+                    User Administration
+                </h1>
 
-            <p class="mt-2 text-[#63736d]">
-                Assign each user to the correct household.
-            </p>
+                <p class="mt-2 text-[#63736d]">
+                    Assign each user to the correct household.
+                </p>
+            </div>
+
+            <Link href="/admin/users/create"
+                class="rounded-lg bg-[#477b67] px-4 py-2 text-sm font-medium text-white hover:bg-[#3c6958]">
+                + Add User
+            </Link>
         </div>
 
-        <div
-            class="overflow-hidden rounded-2xl border border-[#dde4df] bg-white shadow-sm"
-        >
+        <!-- Users table -->
+        <div class="overflow-hidden rounded-2xl border border-[#cbd5d1] bg-white shadow-sm">
             <table class="w-full">
                 <thead class="bg-[#f4f7f5]">
                     <tr>
@@ -54,46 +69,61 @@ const updateHousehold = (userId: number, householdId: number) => {
                         <th class="px-5 py-4 text-left text-sm font-semibold text-[#18332b]">
                             Household
                         </th>
+
+                        <th class="px-5 py-4 text-left text-sm font-semibold text-[#18332b]">
+                            Actions
+                        </th>
                     </tr>
                 </thead>
 
-                <tbody class="divide-y divide-[#e7ece9]">
-                    <tr
-                        v-for="user in props.users"
-                        :key="user.id"
-                    >
+                <tbody class="divide-y divide-[#d6dedb]">
+                    <tr v-for="user in props.users" :key="user.id">
+                        <!-- User -->
                         <td class="px-5 py-4 font-medium text-[#18332b]">
                             {{ user.name }}
                         </td>
 
+                        <!-- Email -->
                         <td class="px-5 py-4 text-[#63736d]">
                             {{ user.email }}
                         </td>
 
+                        <!-- Household -->
                         <td class="px-5 py-4">
                             <select
-                                class="w-full max-w-xs rounded-lg border border-[#cfd8d3]
-                                       bg-white px-3 py-2 text-[#18332b]"
-                                :value="user.households[0]?.id ?? ''"
-                                @change="
+                                class="w-full max-w-xs rounded-lg border border-[#aebbb5] bg-white px-3 py-2 text-[#18332b]"
+                                :value="user.households[0]?.id ?? ''" @change="
                                     updateHousehold(
                                         user.id,
-                                        Number(($event.target as HTMLSelectElement).value)
+                                        Number(
+                                            ($event.target as HTMLSelectElement)
+                                                .value
+                                        )
                                     )
-                                "
-                            >
+                                    ">
                                 <option value="" disabled>
                                     Select household
                                 </option>
 
-                                <option
-                                    v-for="household in props.households"
-                                    :key="household.id"
-                                    :value="household.id"
-                                >
+                                <option v-for="household in props.households" :key="household.id" :value="household.id">
                                     {{ household.household_name }}
                                 </option>
                             </select>
+                        </td>
+
+                        <!-- Actions -->
+                        <td class="px-5 py-4">
+                            <div class="flex items-center gap-3">
+                                <Link :href="`/admin/users/${user.id}/edit`"
+                                    class="font-medium text-[#477b67] hover:underline">
+                                    Edit
+                                </Link>
+
+                                <button type="button" class="font-medium text-red-600 hover:underline"
+                                    @click="deleteUser(user)">
+                                    Delete
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 </tbody>
