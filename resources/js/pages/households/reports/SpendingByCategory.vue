@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 interface Household {
@@ -30,6 +30,20 @@ interface ReportRow {
     average: number;
 }
 
+type PageProps = {
+    auth?: {
+        user?: {
+            households?: {
+                id: number;
+                pivot?: {
+                    role?: 'coach' | 'member';
+                };
+            }[];
+            role?: 'admin' | 'user';
+        };
+    };
+};
+
 const props = defineProps<{
     household: Household;
     context: 'household' | 'ministry_au';
@@ -38,6 +52,14 @@ const props = defineProps<{
     month: number;
     rows: ReportRow[];
 }>();
+
+const page = usePage<PageProps>();
+
+const canDrillDown = computed(() => {
+    return page.props.auth?.user?.households?.[0]?.pivot?.role !== 'coach';
+});
+
+
 
 const monthNames = [
     'January',
@@ -487,10 +509,15 @@ function rowBackground(row: ReportRow, rowIndex: number) {
                                                 •
                                             </div>
 
-                                            <Link :href="`/households/${household.id}/categories/${row.id}`"
+                                            <Link v-if="canDrillDown"
+                                                :href="`/households/${household.id}/categories/${row.id}`"
                                                 class="font-medium text-gray-900 hover:text-[#477b67] hover:underline">
                                                 {{ row.name }}
                                             </Link>
+
+                                            <span v-else class="font-medium text-gray-900">
+                                                {{ row.name }}
+                                            </span>
                                         </div>
                                     </td>
 
@@ -620,10 +647,15 @@ function rowBackground(row: ReportRow, rowIndex: number) {
                                                 •
                                             </div>
 
-                                            <Link :href="`/households/${household.id}/categories/${row.id}`"
+                                            <Link v-if="canDrillDown"
+                                                :href="`/households/${household.id}/categories/${row.id}`"
                                                 class="font-medium text-gray-900 hover:text-[#477b67] hover:underline">
                                                 {{ row.name }}
                                             </Link>
+
+                                            <span v-else class="font-medium text-gray-900">
+                                                {{ row.name }}
+                                            </span>
                                         </div>
                                     </td>
                                     <td

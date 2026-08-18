@@ -34,6 +34,14 @@ const money = (amount: number) => {
         currency: props.household.default_currency ?? 'USD',
     });
 };
+
+const categoryImage = (
+    filename: string | null,
+): string | null => {
+    return filename
+        ? `/images/categories/${filename}`
+        : null;
+};
 </script>
 
 <template>
@@ -50,7 +58,8 @@ const money = (amount: number) => {
         <div class="rounded-2xl bg-[#477b67] p-6 text-white shadow-sm">
             <div class="flex items-center gap-4">
                 <div v-if="category.dashboard_image" class="h-16 w-16 overflow-hidden rounded-xl bg-white/20">
-                    <img :src="category.dashboard_image" :alt="category.name" class="h-full w-full object-cover" />
+                    <img :src="categoryImage(category.dashboard_image) ?? ''" :alt="category.name"
+                        class="h-full w-full object-cover" />
                 </div>
 
                 <div>
@@ -74,8 +83,8 @@ const money = (amount: number) => {
                 }">
                 <div class="flex items-center gap-4">
                     <div class="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-[#edf5f1]">
-                        <img v-if="envelope.dashboard_image" :src="envelope.dashboard_image" :alt="envelope.name"
-                            class="h-full w-full object-cover" />
+                        <img v-if="envelope.dashboard_image" :src="categoryImage(envelope.dashboard_image) ?? ''"
+                            :alt="envelope.name" class="h-full w-full object-cover" />
 
                         <span v-else class="text-lg font-semibold text-[#477b67]">
                             $
@@ -88,8 +97,8 @@ const money = (amount: number) => {
                 </div>
 
                 <div class="text-lg font-semibold" :class="envelope.balance < 0
-                        ? 'text-red-600'
-                        : 'text-gray-900'
+                    ? 'text-red-600'
+                    : 'text-gray-900'
                     ">
                     {{
                         Number(envelope.balance).toLocaleString('en-AU', {

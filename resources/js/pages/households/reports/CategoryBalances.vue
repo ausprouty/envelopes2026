@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { categoryColors } from '@/lib/categoryColors';
 
 type CategoryRow = {
@@ -15,6 +15,19 @@ type Heading = {
     categories: CategoryRow[];
 };
 
+type PageProps = {
+    auth?: {
+        user?: {
+            households?: {
+                id: number;
+                pivot?: {
+                    role?: 'coach' | 'member';
+                };
+            }[];
+        };
+    };
+};
+
 const props = defineProps<{
     household: {
         id: number;
@@ -26,6 +39,11 @@ const props = defineProps<{
     reportContext: 'household' | 'ministry_au';
     hasAuMinistryCategories: boolean;
 }>();
+
+const page = usePage<PageProps>();
+
+const canDrillDown =
+    page.props.auth?.user?.households?.[0]?.pivot?.role !== 'coach';
 
 function changeContext(context: 'household' | 'ministry_au') {
     router.get(
@@ -68,15 +86,15 @@ function formatAmount(amount: number) {
             <!-- PERSONAL / MINISTRY -->
             <div v-if="hasAuMinistryCategories" class="flex gap-2">
                 <button type="button" class="rounded-md border px-4 py-2 font-medium shadow-sm" :class="reportContext === 'household'
-                        ? 'border-[#477b67] bg-[#477b67] text-white'
-                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                    ? 'border-[#477b67] bg-[#477b67] text-white'
+                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                     " @click="changeContext('household')">
                     Personal
                 </button>
 
                 <button type="button" class="rounded-md border px-4 py-2 font-medium shadow-sm" :class="reportContext === 'ministry_au'
-                        ? 'border-[#477b67] bg-[#477b67] text-white'
-                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                    ? 'border-[#477b67] bg-[#477b67] text-white'
+                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                     " @click="changeContext('ministry_au')">
                     Ministry
                 </button>
@@ -101,8 +119,8 @@ function formatAmount(amount: number) {
                 </div>
 
                 <div class="text-2xl font-semibold" :class="totalBalance < 0
-                        ? 'text-red-600'
-                        : 'text-gray-900'
+                    ? 'text-red-600'
+                    : 'text-gray-900'
                     ">
                     {{ household.default_currency }}
                     {{ formatAmount(totalBalance) }}
@@ -116,16 +134,16 @@ function formatAmount(amount: number) {
                 class="overflow-hidden rounded-xl border border-gray-300 shadow-sm">
                 <!-- HEADING ROW -->
                 <div class="flex items-center justify-between px-5 py-4" :class="categoryColors[
-                        index % categoryColors.length
-                    ].heading
+                    index % categoryColors.length
+                ].heading
                     ">
                     <div class="text-lg font-semibold text-gray-900">
                         {{ heading.name }}
                     </div>
 
                     <div class="font-semibold" :class="heading.balance < 0
-                            ? 'text-red-600'
-                            : 'text-gray-900'
+                        ? 'text-red-600'
+                        : 'text-gray-900'
                         ">
                         {{ household.default_currency }}
                         {{ formatAmount(heading.balance) }}
@@ -134,25 +152,42 @@ function formatAmount(amount: number) {
 
                 <!-- CHILD CATEGORIES -->
                 <div>
-                    <Link v-for="category in heading.categories" :key="category.id"
-                        :href="`/households/${household.id}/dashboard/envelopes/${category.id}`"
-                        class="flex items-center justify-between border-t border-gray-300 px-5 py-3 transition hover:brightness-[0.98]"
-                        :class="categoryColors[
+                    <template v-for="category in heading.categories" :key="category.id">
+                        <Link v-if="canDrillDown"
+                            :href="`/households/${household.id}/dashboard/envelopes/${category.id}`"
+                            class="flex items-center justify-between border-t border-gray-300 px-5 py-3 transition hover:brightness-[0.98]"
+                            :class="categoryColors[
                                 index % categoryColors.length
-                            ].child
-                            ">
-                        <div class="text-sm font-medium text-gray-800">
-                            {{ category.name }}
-                        </div>
+                            ].child">
+                            <div class="text-sm font-medium text-gray-800">
+                                {{ category.name }}
+                            </div>
 
-                        <div class="text-sm font-semibold" :class="category.balance < 0
+                            <div class="text-sm font-semibold" :class="category.balance < 0
                                 ? 'text-red-600'
                                 : 'text-gray-900'
-                            ">
-                            {{ household.default_currency }}
-                            {{ formatAmount(category.balance) }}
+                                ">
+                                {{ household.default_currency }}
+                                {{ formatAmount(category.balance) }}
+                            </div>
+                        </Link>
+
+                        <div v-else class="flex items-center justify-between border-t border-gray-300 px-5 py-3" :class="categoryColors[
+                            index % categoryColors.length
+                        ].child">
+                            <div class="text-sm font-medium text-gray-800">
+                                {{ category.name }}
+                            </div>
+
+                            <div class="text-sm font-semibold" :class="category.balance < 0
+                                ? 'text-red-600'
+                                : 'text-gray-900'
+                                ">
+                                {{ household.default_currency }}
+                                {{ formatAmount(category.balance) }}
+                            </div>
                         </div>
-                    </Link>
+                    </template>
                 </div>
             </div>
         </div>

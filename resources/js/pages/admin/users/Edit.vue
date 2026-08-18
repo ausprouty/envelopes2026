@@ -1,30 +1,47 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { watch } from 'vue';
+
+type HouseholdRole = 'coach' | 'member';
 
 interface Household {
     id: number;
     household_name: string;
+    pivot?: {
+        role?: HouseholdRole;
+    };
 }
 
 interface User {
+    email: string;
+    households: Household[];
     id: number;
     name: string;
-    email: string;
     role: 'admin' | 'user';
-    households: Household[];
 }
 
 const props = defineProps<{
-    user: User;
     households: Household[];
+    user: User;
 }>();
 
 const form = useForm({
-    name: props.user.name,
     email: props.user.email,
     household_id: props.user.households[0]?.id ?? '',
-    role: props.user.role,
+    household_role: props.user.households[0]?.pivot?.role ?? 'member',
+    name: props.user.name,
+    system_role: props.user.role,
 });
+
+watch(
+    () => form.system_role,
+    (systemRole) => {
+        if (systemRole === 'admin') {
+            form.household_id = '';
+            form.household_role = 'member';
+        }
+    }
+);
 
 const submit = () => {
     form.put(`/admin/users/${props.user.id}`);
@@ -44,7 +61,7 @@ const submit = () => {
                     </h1>
 
                     <p class="mt-1 text-slate-600">
-                        Update this user's details and household.
+                        Update this user's details and access.
                     </p>
                 </div>
 
@@ -60,9 +77,8 @@ const submit = () => {
                         Name
                     </label>
 
-                    <input id="name" v-model="form.name" type="text" class="w-full rounded-lg border border-slate-400 px-3 py-2
-                               focus:border-[#477b67] focus:outline-none
-                               focus:ring-2 focus:ring-[#477b67]/20" />
+                    <input id="name" v-model="form.name" type="text"
+                        class="w-full rounded-lg border border-slate-400 px-3 py-2 focus:border-[#477b67] focus:outline-none focus:ring-2 focus:ring-[#477b67]/20" />
 
                     <div v-if="form.errors.name" class="mt-1 text-sm text-red-600">
                         {{ form.errors.name }}
@@ -75,24 +91,44 @@ const submit = () => {
                         Email
                     </label>
 
-                    <input id="email" v-model="form.email" type="email" class="w-full rounded-lg border border-slate-400 px-3 py-2
-                               focus:border-[#477b67] focus:outline-none
-                               focus:ring-2 focus:ring-[#477b67]/20" />
+                    <input id="email" v-model="form.email" type="email"
+                        class="w-full rounded-lg border border-slate-400 px-3 py-2 focus:border-[#477b67] focus:outline-none focus:ring-2 focus:ring-[#477b67]/20" />
 
                     <div v-if="form.errors.email" class="mt-1 text-sm text-red-600">
                         {{ form.errors.email }}
                     </div>
                 </div>
 
-                <!-- Household -->
+                <!-- System Role -->
                 <div>
+                    <label for="system_role" class="mb-1 block text-sm font-medium text-slate-700">
+                        System Role
+                    </label>
+
+                    <select id="system_role" v-model="form.system_role"
+                        class="w-full rounded-lg border border-slate-400 px-3 py-2 focus:border-[#477b67] focus:outline-none focus:ring-2 focus:ring-[#477b67]/20">
+                        <option value="user">
+                            User
+                        </option>
+
+                        <option value="admin">
+                            Administrator
+                        </option>
+                    </select>
+
+                    <div v-if="form.errors.system_role" class="mt-1 text-sm text-red-600">
+                        {{ form.errors.system_role }}
+                    </div>
+                </div>
+
+                <!-- Household -->
+                <div v-if="form.system_role === 'user'">
                     <label for="household_id" class="mb-1 block text-sm font-medium text-slate-700">
                         Household
                     </label>
 
-                    <select id="household_id" v-model="form.household_id" class="w-full rounded-lg border border-slate-400 px-3 py-2
-                               focus:border-[#477b67] focus:outline-none
-                               focus:ring-2 focus:ring-[#477b67]/20">
+                    <select id="household_id" v-model="form.household_id"
+                        class="w-full rounded-lg border border-slate-400 px-3 py-2 focus:border-[#477b67] focus:outline-none focus:ring-2 focus:ring-[#477b67]/20">
                         <option value="" disabled>
                             Select a household
                         </option>
@@ -107,40 +143,37 @@ const submit = () => {
                     </div>
                 </div>
 
-                <!-- Role -->
-                <div>
-                    <label for="role" class="mb-1 block text-sm font-medium text-slate-700">
-                        Role
+                <!-- Household Role -->
+                <div v-if="form.system_role === 'user'">
+                    <label for="household_role" class="mb-1 block text-sm font-medium text-slate-700">
+                        Household Role
                     </label>
 
-                    <select id="role" v-model="form.role" class="w-full rounded-lg border border-slate-400 px-3 py-2
-                               focus:border-[#477b67] focus:outline-none
-                               focus:ring-2 focus:ring-[#477b67]/20">
-                        <option value="user">
-                            User
+                    <select id="household_role" v-model="form.household_role"
+                        class="w-full rounded-lg border border-slate-400 px-3 py-2 focus:border-[#477b67] focus:outline-none focus:ring-2 focus:ring-[#477b67]/20">
+                        <option value="member">
+                            Member
                         </option>
 
-                        <option value="admin">
-                            Administrator
+                        <option value="coach">
+                            Coach
                         </option>
                     </select>
 
-                    <div v-if="form.errors.role" class="mt-1 text-sm text-red-600">
-                        {{ form.errors.role }}
+                    <div v-if="form.errors.household_role" class="mt-1 text-sm text-red-600">
+                        {{ form.errors.household_role }}
                     </div>
                 </div>
 
                 <!-- Buttons -->
                 <div class="flex justify-end gap-3 pt-2">
-                    <Link href="/admin/users" class="rounded-lg border border-slate-400 px-4 py-2
-                               text-sm font-medium text-slate-700
-                               hover:bg-slate-50">
+                    <Link href="/admin/users"
+                        class="rounded-lg border border-slate-400 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
                         Cancel
                     </Link>
 
-                    <button type="submit" :disabled="form.processing" class="rounded-lg bg-[#477b67] px-4 py-2
-                               text-sm font-medium text-white
-                               hover:bg-[#3c6958] disabled:opacity-50">
+                    <button type="submit" :disabled="form.processing"
+                        class="rounded-lg bg-[#477b67] px-4 py-2 text-sm font-medium text-white hover:bg-[#3c6958] disabled:opacity-50">
                         {{ form.processing ? 'Saving...' : 'Save Changes' }}
                     </button>
                 </div>

@@ -6,28 +6,31 @@ type Household = {
     household_name: string;
 };
 
+type HouseholdRole = 'coach' | 'member';
+
 type User = {
-    id: number;
-    name: string;
     email: string;
     households: Array<
         Household & {
             pivot?: {
-                role?: 'member' | 'coach';
+                role?: HouseholdRole;
             };
         }
     >;
+    id: number;
+    name: string;
+    role: 'admin' | 'user';
 };
 
 const props = defineProps<{
-    users: User[];
     households: Household[];
+    users: User[];
 }>();
 
 const updateHousehold = (
     userId: number,
     householdId: number,
-    householdRole: 'member' | 'coach'
+    householdRole: HouseholdRole
 ) => {
     router.put(`/admin/users/${userId}/household`, {
         household_id: householdId,
@@ -54,7 +57,7 @@ const deleteUser = (user: User) => {
                 </h1>
 
                 <p class="mt-2 text-[#63736d]">
-                    Assign each user to the correct household.
+                    Manage users and their access.
                 </p>
             </div>
 
@@ -105,12 +108,19 @@ const deleteUser = (user: User) => {
 
                         <!-- Household -->
                         <td class="px-5 py-4">
-                            <select
+                            <span v-if="user.role === 'admin'" class="text-[#63736d]">
+                                —
+                            </span>
+
+                            <select v-else
                                 class="w-full max-w-xs rounded-lg border border-[#aebbb5] bg-white px-3 py-2 text-[#18332b]"
                                 :value="user.households[0]?.id ?? ''" @change="
                                     updateHousehold(
                                         user.id,
-                                        Number(($event.target as HTMLSelectElement).value),
+                                        Number(
+                                            ($event.target as HTMLSelectElement)
+                                                .value
+                                        ),
                                         user.households[0]?.pivot?.role ?? 'member'
                                     )
                                     ">
@@ -123,19 +133,29 @@ const deleteUser = (user: User) => {
                                 </option>
                             </select>
                         </td>
-                        <!-- Access -->
 
+                        <!-- Access -->
                         <td class="px-5 py-4">
-                            <select class="rounded-lg border border-[#aebbb5] bg-white px-3 py-2 text-[#18332b]"
+                            <span v-if="user.role === 'admin'" class="font-medium text-[#18332b]">
+                                Administrator
+                            </span>
+
+                            <select v-else class="rounded-lg border border-[#aebbb5] bg-white px-3 py-2 text-[#18332b]"
                                 :value="user.households[0]?.pivot?.role ?? 'member'" @change="
                                     updateHousehold(
                                         user.id,
                                         user.households[0]?.id ?? 0,
-                                        ($event.target as HTMLSelectElement).value as 'member' | 'coach'
+                                        ($event.target as HTMLSelectElement)
+                                            .value as HouseholdRole
                                     )
                                     ">
-                                <option value="member">Member</option>
-                                <option value="coach">Coach</option>
+                                <option value="member">
+                                    Member
+                                </option>
+
+                                <option value="coach">
+                                    Coach
+                                </option>
                             </select>
                         </td>
 

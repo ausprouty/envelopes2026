@@ -1,6 +1,6 @@
-reat
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { watch } from 'vue';
 
 interface Household {
     id: number;
@@ -12,11 +12,22 @@ const props = defineProps<{
 }>();
 
 const form = useForm({
-    name: '',
     email: '',
     household_id: '',
-    role: 'user',
+    household_role: 'member',
+    name: '',
+    system_role: 'user',
 });
+
+watch(
+    () => form.system_role,
+    (systemRole) => {
+        if (systemRole === 'admin') {
+            form.household_id = '';
+            form.household_role = 'member';
+        }
+    }
+);
 
 const submit = () => {
     form.post('/admin/users');
@@ -36,7 +47,7 @@ const submit = () => {
                     </h1>
 
                     <p class="mt-1 text-slate-600">
-                        Create a user and assign them to a household.
+                        Create a user and set their access.
                     </p>
                 </div>
 
@@ -74,8 +85,30 @@ const submit = () => {
                     </div>
                 </div>
 
-                <!-- Household -->
+                <!-- System Role -->
                 <div>
+                    <label for="system_role" class="mb-1 block text-sm font-medium text-slate-700">
+                        System Role
+                    </label>
+
+                    <select id="system_role" v-model="form.system_role"
+                        class="w-full rounded-lg border border-slate-400 px-3 py-2 focus:border-[#477b67] focus:outline-none focus:ring-2 focus:ring-[#477b67]/20">
+                        <option value="user">
+                            User
+                        </option>
+
+                        <option value="admin">
+                            Administrator
+                        </option>
+                    </select>
+
+                    <div v-if="form.errors.system_role" class="mt-1 text-sm text-red-600">
+                        {{ form.errors.system_role }}
+                    </div>
+                </div>
+
+                <!-- Household -->
+                <div v-if="form.system_role === 'user'">
                     <label for="household_id" class="mb-1 block text-sm font-medium text-slate-700">
                         Household
                     </label>
@@ -96,25 +129,25 @@ const submit = () => {
                     </div>
                 </div>
 
-                <!-- Role -->
-                <div>
-                    <label for="role" class="mb-1 block text-sm font-medium text-slate-700">
-                        Role
+                <!-- Household Role -->
+                <div v-if="form.system_role === 'user'">
+                    <label for="household_role" class="mb-1 block text-sm font-medium text-slate-700">
+                        Household Role
                     </label>
 
-                    <select id="role" v-model="form.role"
+                    <select id="household_role" v-model="form.household_role"
                         class="w-full rounded-lg border border-slate-400 px-3 py-2 focus:border-[#477b67] focus:outline-none focus:ring-2 focus:ring-[#477b67]/20">
-                        <option value="user">
-                            User
+                        <option value="member">
+                            Member
                         </option>
 
-                        <option value="admin">
-                            Administrator
+                        <option value="coach">
+                            Coach
                         </option>
                     </select>
 
-                    <div v-if="form.errors.role" class="mt-1 text-sm text-red-600">
-                        {{ form.errors.role }}
+                    <div v-if="form.errors.household_role" class="mt-1 text-sm text-red-600">
+                        {{ form.errors.household_role }}
                     </div>
                 </div>
 

@@ -61,23 +61,34 @@ class UserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'household_id' => ['required', 'exists:households,id'],
-            'role' => ['required', 'in:admin,user'],
+            'household_id' => [
+                'nullable',
+                'required_if:system_role,user',
+                'exists:households,id',
+            ],
+            'household_role' => [
+                'nullable',
+                'required_if:system_role,user',
+                'in:member,coach',
+            ],
+            'name' => ['required', 'string', 'max:255'],
+            'system_role' => ['required', 'in:admin,user'],
         ]);
 
         $user = User::create([
-            'name' => $validated['name'],
             'email' => $validated['email'],
-            'role' => $validated['role'],
+            'name' => $validated['name'],
             'password' => bcrypt(str()->random(32)),
+            'role' => $validated['system_role'],
         ]);
 
-        $user->households()->attach(
-            $validated['household_id'],
-            ['role' => 'member']
-        );
+        if ($validated['system_role'] === 'user') {
+            $user->households()->attach(
+                $validated['household_id'],
+                ['role' => $validated['household_role']]
+            );
+        }
 
         return redirect()
             ->route('admin.users.index')
@@ -87,28 +98,41 @@ class UserController extends Controller
     public function update(Request $request, User $user): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required',
                 'email',
                 'max:255',
                 'unique:users,email,' . $user->id,
             ],
-            'household_id' => ['required', 'exists:households,id'],
-            'role' => ['required', 'in:admin,user'],
+            'household_id' => [
+                'nullable',
+                'required_if:system_role,user',
+                'exists:households,id',
+            ],
+            'household_role' => [
+                'nullable',
+                'required_if:system_role,user',
+                'in:member,coach',
+            ],
+            'name' => ['required', 'string', 'max:255'],
+            'system_role' => ['required', 'in:admin,user'],
         ]);
 
         $user->update([
-            'name' => $validated['name'],
             'email' => $validated['email'],
-            'role' => $validated['role'],
+            'name' => $validated['name'],
+            'role' => $validated['system_role'],
         ]);
 
-        $user->households()->sync([
-            $validated['household_id'] => [
-                'role' => 'member',
-            ],
-        ]);
+        if ($validated['system_role'] === 'admin') {
+            $user->households()->sync([]);
+        } else {
+            $user->households()->sync([
+                $validated['household_id'] => [
+                    'role' => $validated['household_role'],
+                ],
+            ]);
+        }
 
         return redirect()
             ->route('admin.users.index')

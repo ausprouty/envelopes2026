@@ -36,8 +36,12 @@ type PageProps = {
 
     auth?: {
         user?: {
+            role?: 'admin' | 'user';
             households?: {
                 id: number;
+                pivot?: {
+                    role?: 'member' | 'coach';
+                };
             }[];
         };
     };
@@ -46,14 +50,13 @@ type PageProps = {
 const page = usePage<PageProps>();
 
 const isAdmin = computed(() => {
-    const auth = page.props.auth as {
-        user?: {
-            role?: string;
-        };
-    };
-
-    return auth?.user?.role === 'admin';
+    return page.props.auth?.user?.role === 'admin';
 });
+
+const isCoach = computed(() => {
+    return page.props.auth?.user?.households?.[0]?.pivot?.role === 'coach';
+});
+
 const householdId = computed(
     () =>
         page.props.household?.id ??
@@ -189,17 +192,19 @@ const adminNavItems: NavItem[] = [
         <SidebarContent>
             <NavMain :items="dashboardNavItems" />
 
-            <div class="px-3 pt-3 pb-1 text-xs font-medium text-muted-foreground">
-                Tasks
-            </div>
+            <template v-if="!isCoach">
+                <div class="px-3 pt-3 pb-1 text-xs font-medium text-muted-foreground">
+                    Tasks
+                </div>
 
-            <NavMain :items="taskNavItems" />
+                <NavMain :items="taskNavItems" />
 
-            <div class="px-3 pt-3 pb-1 text-xs font-medium text-muted-foreground">
-                Data
-            </div>
+                <div class="px-3 pt-3 pb-1 text-xs font-medium text-muted-foreground">
+                    Data
+                </div>
 
-            <NavMain :items="dataNavItems" />
+                <NavMain :items="dataNavItems" />
+            </template>
 
             <div class="px-3 pt-3 pb-1 text-xs font-medium text-muted-foreground">
                 Reports

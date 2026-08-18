@@ -32,10 +32,17 @@ class DashboardController extends Controller
             ->get()
             ->map(function (FinancialAccount $account) {
                 return [
-                    'id' => $account->id,
                     'account_name' => $account->account_name,
+                    'available_balance' => $account->available_balance !== null
+                        ? (float) $account->available_balance
+                        : null,
+                    'balance_as_of' => $account->balance_as_of,
                     'currency' => $account->currency,
+                    'id' => $account->id,
                     'latest_transaction_date' => $account->transactions_max_transaction_date,
+                    'ledger_balance' => $account->ledger_balance !== null
+                        ? (float) $account->ledger_balance
+                        : null,
                 ];
             })
             ->values();
