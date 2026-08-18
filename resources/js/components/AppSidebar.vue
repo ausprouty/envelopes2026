@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
 import {
-    BookOpen,
-    FolderGit2,
     Users,
     ChartNoAxesColumn,
     CircleDollarSign,
@@ -30,6 +28,11 @@ import {
 import type { NavItem } from '@/types';
 
 type PageProps = {
+    adminHouseholds?: {
+        id: number;
+        household_name: string;
+    }[];
+
     household?: {
         id: number;
     };
@@ -51,6 +54,10 @@ const page = usePage<PageProps>();
 
 const isAdmin = computed(() => {
     return page.props.auth?.user?.role === 'admin';
+});
+
+const adminHouseholds = computed(() => {
+    return page.props.adminHouseholds ?? [];
 });
 
 const isCoach = computed(() => {
@@ -162,17 +169,19 @@ const adminNavItems: NavItem[] = [
         href: '/admin/users',
         icon: Users,
     },
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/vue-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs',
-        icon: BookOpen,
-    },
+
 ];
+
+function switchHousehold(event: Event) {
+    const target = event.target as HTMLSelectElement;
+
+    if (!target.value) {
+        return;
+    }
+
+    window.location.href =
+        `/households/${target.value}/dashboard`;
+}
 </script>
 
 <template>
@@ -214,11 +223,31 @@ const adminNavItems: NavItem[] = [
         </SidebarContent>
 
         <SidebarFooter>
-            <div v-if="isAdmin" class="px-2 pb-1 text-xs font-medium text-muted-foreground">
-                Administration
-            </div>
+            <template v-if="isAdmin">
+                <div class="px-2 pb-1 text-xs font-medium text-muted-foreground">
+                    Administration
+                </div>
 
-            <NavFooter v-if="isAdmin" :items="adminNavItems" />
+                <div class="px-2 pb-3">
+                    <label class="mb-1 block text-xs font-medium text-muted-foreground">
+                        Working with
+                    </label>
+
+                    <select :value="householdId ?? ''"
+                        class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                        @change="switchHousehold">
+                        <option value="">
+                            Select household
+                        </option>
+
+                        <option v-for="household in adminHouseholds" :key="household.id" :value="household.id">
+                            {{ household.household_name }}
+                        </option>
+                    </select>
+                </div>
+
+                <NavFooter :items="adminNavItems" />
+            </template>
 
             <NavUser />
         </SidebarFooter>

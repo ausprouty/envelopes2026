@@ -5,6 +5,7 @@ use App\Http\Controllers\CategoryBalanceReportController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CategoryTransferController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Admin\EnvelopeBalanceAdjustmentController;
 use App\Http\Controllers\FinancialAccountController;
 use App\Http\Controllers\FinancialTransactionController;
 use App\Http\Controllers\ImportProfileController;
@@ -27,6 +28,16 @@ Route::middleware(['auth', 'admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
+        
+        Route::get(
+            '/households/{household}/balance-adjustments/create',
+            [EnvelopeBalanceAdjustmentController::class, 'create']
+        )->name('households.balance-adjustments.create');
+
+        Route::post(
+            '/households/{household}/balance-adjustments',
+            [EnvelopeBalanceAdjustmentController::class, 'store']
+        )->name('households.balance-adjustments.store');
         Route::get(
             '/users',
             [UserController::class, 'index']
