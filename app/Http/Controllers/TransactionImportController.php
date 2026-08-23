@@ -7,6 +7,7 @@ use App\Models\Household;
 use App\Models\Transaction;
 use App\Models\TransactionImportProfile;
 use App\Services\TransactionImport\QfxParser;
+use App\Services\TransactionImport\PayeeCleaner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -237,6 +238,7 @@ class TransactionImportController extends Controller
     public function previewOfx(
         Request $request,
         Household $household,
+        PayeeCleaner $payeeCleaner,
         QfxParser $qfxParser
     ): JsonResponse {
         $validated = $request->validate([
@@ -281,17 +283,33 @@ class TransactionImportController extends Controller
         $balances = $qfxParser->parseBalances($contents);
 
         $transactions = collect($transactions)
-            ->map(function (array $transaction) use ($account) {
-                return [
-                    'transaction_date' => $transaction['transaction_date'],
-                    'description' => $transaction['description'] ?? '',
-                    'payee' => $transaction['payee'] ?? '',
-                    'amount' => $transaction['amount'],
-                    'currency' => $account->currency,
-                    'external_id' => $transaction['external_id'],
-                ];
-            })
-            ->values();
+    ->map(function (array $transaction) use (
+        $account,
+        $payeeCleaner
+    ) {
+        return [
+            'transaction_date' =>
+                $transaction['transaction_date'],
+
+            'description' =>
+                $transaction['description'] ?? '',
+
+            'payee' =>
+                $payeeCleaner->cleanWestpac(
+                    $transaction['payee'] ?? ''
+                ),
+
+            'amount' =>
+                $transaction['amount'],
+
+            'currency' =>
+                $account->currency,
+
+            'external_id' =>
+                $transaction['external_id'],
+        ];
+    })
+    ->values();
 
         return response()->json([
             'available_balance' => $balances['available_balance'],

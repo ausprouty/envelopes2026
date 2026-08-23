@@ -1,10 +1,13 @@
 <script setup lang="ts">
+
 import { Head, Link } from '@inertiajs/vue3';
 import { ArrowRight, CircleDollarSign, Eye, Shapes } from '@lucide/vue';
+import { computed, ref } from 'vue';
 import { categoryColors } from '@/lib/categoryColors';
 import { categoryIcons } from '@/lib/categoryIcons';
 import type { CategoryIconName } from '@/lib/categoryIcons';
 import { formatDate } from '@/lib/formatDate';
+
 
 type Account = {
     account_name: string;
@@ -32,7 +35,7 @@ type WatchCategory = {
     needs_attention: boolean;
 };
 
-defineProps<{
+const props = defineProps<{
     accounts: Account[];
     headings: Heading[];
     household: {
@@ -44,6 +47,40 @@ defineProps<{
     totalAvailable: number;
     watchCategories: WatchCategory[];
 }>();
+
+const showAllAccounts = ref(false);
+
+const accountTotals = computed(() => {
+    const totals: Record<
+        string,
+        {
+            available: number;
+            ledger: number;
+        }
+    > = {};
+
+    props.accounts.forEach(account => {
+        if (!totals[account.currency]) {
+            totals[account.currency] = {
+                available: 0,
+                ledger: 0,
+            };
+        }
+
+        totals[account.currency].available +=
+            Number(account.available_balance ?? 0);
+
+        totals[account.currency].ledger +=
+            Number(account.ledger_balance ?? 0);
+    });
+
+    return Object.entries(totals).map(
+        ([currency, balances]) => ({
+            currency,
+            ...balances,
+        }),
+    );
+});
 
 function formatAccountBalance(
     amount: number | null,
@@ -143,60 +180,176 @@ function formatAccountBalance(
                     </div>
                 </div>
             </div>
-
             <!-- Accounts -->
             <div class="divide-y divide-gray-200">
-                <div v-for="account in accounts" :key="account.id"
-                    class="grid gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
-                    <!-- Account -->
-                    <div class="min-w-0">
-                        <div class="font-semibold text-gray-900">
-                            {{ account.account_name }}
+                <!-- One or two accounts: show normally -->
+                <template v-if="accounts.length <= 2">
+                    <div v-for="account in accounts" :key="account.id"
+                        class="grid gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+                        <!-- Account -->
+                        <div class="min-w-0">
+                            <div class="font-semibold text-gray-900">
+                                {{ account.account_name }}
+                            </div>
+
+                            <div class="mt-1 text-sm text-gray-500">
+                                <template v-if="account.balance_as_of">
+                                    As of {{ formatDate(account.balance_as_of) }}
+                                </template>
+
+                                <template v-else>
+                                    No balance imported
+                                </template>
+                            </div>
                         </div>
 
-                        <div class="mt-1 text-sm text-gray-500">
-                            <template v-if="account.balance_as_of">
-                                As of {{ formatDate(account.balance_as_of) }}
-                            </template>
+                        <!-- Available -->
+                        <div class="sm:min-w-32 sm:text-right">
+                            <div class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                Available
+                            </div>
 
-                            <template v-else>
-                                No balance imported
-                            </template>
+                            <div class="mt-1 text-lg font-bold text-[#477b67]">
+                                {{
+                                    formatAccountBalance(
+                                        account.available_balance,
+                                        account.currency,
+                                    )
+                                }}
+                            </div>
+                        </div>
+
+                        <!-- Ledger -->
+                        <div class="sm:min-w-32 sm:text-right">
+                            <div class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                Ledger
+                            </div>
+
+                            <div class="mt-1 font-semibold text-gray-900">
+                                {{
+                                    formatAccountBalance(
+                                        account.ledger_balance,
+                                        account.currency,
+                                    )
+                                }}
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- More than two accounts: collapsed summary -->
+                <template v-else-if="!showAllAccounts">
+                    <div v-for="total in accountTotals" :key="total.currency"
+                        class="grid gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+                        <div>
+                            <div class="font-semibold text-gray-900">
+                                Total Account Balance
+                            </div>
+
+                            <div class="mt-1 text-sm text-gray-500">
+                                {{ accounts.length }} accounts
+                                <span v-if="accountTotals.length > 1">
+                                    · {{ total.currency }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="sm:min-w-32 sm:text-right">
+                            <div class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                Available
+                            </div>
+
+                            <div class="mt-1 text-lg font-bold text-[#477b67]">
+                                {{
+                                    formatAccountBalance(
+                                        total.available,
+                                        total.currency,
+                                    )
+                                }}
+                            </div>
+                        </div>
+
+                        <div class="sm:min-w-32 sm:text-right">
+                            <div class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                Ledger
+                            </div>
+
+                            <div class="mt-1 font-semibold text-gray-900">
+                                {{
+                                    formatAccountBalance(
+                                        total.ledger,
+                                        total.currency,
+                                    )
+                                }}
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Available -->
-                    <div class="sm:min-w-32 sm:text-right">
-                        <div class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                            Available
+                    <button type="button" class="w-full px-5 py-3 text-sm font-semibold text-[#477b67] hover:bg-gray-50"
+                        @click="showAllAccounts = true">
+                        Show all {{ accounts.length }} accounts
+                    </button>
+                </template>
+
+                <!-- Expanded account list -->
+                <template v-else>
+                    <div v-for="account in accounts" :key="account.id"
+                        class="grid gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+                        <!-- Account -->
+                        <div class="min-w-0">
+                            <div class="font-semibold text-gray-900">
+                                {{ account.account_name }}
+                            </div>
+
+                            <div class="mt-1 text-sm text-gray-500">
+                                <template v-if="account.balance_as_of">
+                                    As of {{ formatDate(account.balance_as_of) }}
+                                </template>
+
+                                <template v-else>
+                                    No balance imported
+                                </template>
+                            </div>
                         </div>
 
-                        <div class="mt-1 text-lg font-bold text-[#477b67]">
-                            {{
-                                formatAccountBalance(
-                                    account.available_balance,
-                                    account.currency,
-                                )
-                            }}
+                        <!-- Available -->
+                        <div class="sm:min-w-32 sm:text-right">
+                            <div class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                Available
+                            </div>
+
+                            <div class="mt-1 text-lg font-bold text-[#477b67]">
+                                {{
+                                    formatAccountBalance(
+                                        account.available_balance,
+                                        account.currency,
+                                    )
+                                }}
+                            </div>
+                        </div>
+
+                        <!-- Ledger -->
+                        <div class="sm:min-w-32 sm:text-right">
+                            <div class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                Ledger
+                            </div>
+
+                            <div class="mt-1 font-semibold text-gray-900">
+                                {{
+                                    formatAccountBalance(
+                                        account.ledger_balance,
+                                        account.currency,
+                                    )
+                                }}
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Ledger -->
-                    <div class="sm:min-w-32 sm:text-right">
-                        <div class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                            Ledger
-                        </div>
-
-                        <div class="mt-1 font-semibold text-gray-900">
-                            {{
-                                formatAccountBalance(
-                                    account.ledger_balance,
-                                    account.currency,
-                                )
-                            }}
-                        </div>
-                    </div>
-                </div>
+                    <button type="button" class="w-full px-5 py-3 text-sm font-semibold text-[#477b67] hover:bg-gray-50"
+                        @click="showAllAccounts = false">
+                        Collapse accounts
+                    </button>
+                </template>
             </div>
         </div>
 
