@@ -11,7 +11,6 @@ use Inertia\Response;
 
 class ImportProfileController extends Controller
 {
-
     public function create(
         Household $household
     ): Response {
@@ -27,6 +26,11 @@ class ImportProfileController extends Controller
         Household $household,
         TransactionImportProfile $importProfile
     ): Response {
+        $this->ensureProfileBelongsToHousehold(
+            $household,
+            $importProfile
+        );
+
         return Inertia::render(
             'households/import-profiles/Edit',
             [
@@ -39,19 +43,22 @@ class ImportProfileController extends Controller
     public function index(
         Household $household
     ): Response {
-        $profiles = TransactionImportProfile::query()
+        $profiles = $household
+            ->transactionImportProfiles()
             ->orderBy('name')
             ->get([
                 'id',
                 'name',
-                'payee_field',
-                'description_field',
-                'header_signature',
-                'date_column',
                 'amount_column',
-                'debit_column',
                 'credit_column',
+                'date_column',
                 'date_format',
+                'debit_column',
+                'description_column',
+                'description_field',
+                'format',
+                'header_signature',
+                'payee_field',
             ]);
 
         return Inertia::render(
@@ -63,74 +70,33 @@ class ImportProfileController extends Controller
         );
     }
 
+    public function store(
+        Request $request,
+        Household $household
+    ): RedirectResponse {
+        $validated = $this->validateProfile($request);
+
+        $household
+            ->transactionImportProfiles()
+            ->create($validated);
+
+        return redirect()->route(
+            'households.import-profiles.index',
+            $household
+        );
+    }
+
     public function update(
         Request $request,
         Household $household,
         TransactionImportProfile $importProfile
     ): RedirectResponse {
-        $validated = $request->validate([
-            'amount_column' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
+        $this->ensureProfileBelongsToHousehold(
+            $household,
+            $importProfile
+        );
 
-            'credit_column' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
-            'date_column' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
-            'date_format' => [
-                'nullable',
-                'string',
-                'max:30',
-            ],
-
-            'debit_column' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
-            'description_column' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
-            'description_field' => [
-                'nullable',
-                'in:NAME,MEMO',
-            ],
-
-            'format' => [
-                'required',
-                'in:csv,ofx',
-            ],
-
-            'header_signature' => [
-                'nullable',
-                'string',
-            ],
-
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-            ],
-
-            'payee_field' => [
-                'nullable',
-                'in:NAME,MEMO',
-            ],
-        ]);
+        $validated = $this->validateProfile($request);
 
         $importProfile->update($validated);
 
@@ -140,15 +106,59 @@ class ImportProfileController extends Controller
         );
     }
 
-    public function store(
-        Request $request,
-        Household $household
-    ): RedirectResponse {
-        $validated = $request->validate([
-            'name' => [
-                'required',
+    private function ensureProfileBelongsToHousehold(
+        Household $household,
+        TransactionImportProfile $importProfile
+    ): void {
+        abort_unless(
+            $importProfile->household_id === $household->id,
+            404
+        );
+    }
+
+    private function validateProfile(
+        Request $request
+    ): array {
+        return $request->validate([
+            'amount_column' => [
+                'nullable',
                 'string',
                 'max:255',
+            ],
+
+            'credit_column' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'date_column' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'date_format' => [
+                'nullable',
+                'string',
+                'max:30',
+            ],
+
+            'debit_column' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'description_column' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'description_field' => [
+                'nullable',
+                'in:NAME,MEMO',
             ],
 
             'format' => [
@@ -161,59 +171,16 @@ class ImportProfileController extends Controller
                 'string',
             ],
 
-            'date_column' => [
-                'nullable',
+            'name' => [
+                'required',
                 'string',
                 'max:255',
-            ],
-
-            'description_column' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
-            'amount_column' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
-            'debit_column' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
-            'credit_column' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
-            'date_format' => [
-                'nullable',
-                'string',
-                'max:30',
             ],
 
             'payee_field' => [
                 'nullable',
                 'in:NAME,MEMO',
             ],
-
-            'description_field' => [
-                'nullable',
-                'in:NAME,MEMO',
-            ],
         ]);
-
-        TransactionImportProfile::create($validated);
-
-        return redirect()
-            ->route(
-                'households.import-profiles.index',
-                $household
-            );
     }
 }

@@ -131,6 +131,11 @@ const dataNavItems = computed<NavItem[]>(() => {
 
     return [
         {
+            title: 'Transactions',
+            href: `/households/${id}/transactions`,
+            icon: ReceiptText,
+        },
+        {
             title: 'Accounts',
             href: `/households/${id}/accounts`,
             icon: WalletCards,
@@ -141,10 +146,12 @@ const dataNavItems = computed<NavItem[]>(() => {
             icon: Tags,
         },
         {
-            title: 'Transactions',
-            href: `/households/${id}/transactions`,
-            icon: ReceiptText,
+            title: 'Import Profiles',
+            href: `/households/${id}/import-profiles`,
+            icon: Upload,
         },
+
+
     ];
 });
 

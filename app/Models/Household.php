@@ -43,4 +43,8 @@ class Household extends Model
     {
         return $this->hasMany(IncomeAllocationDefault::class);
     }
+    public function transactionImportProfiles()
+    {
+        return $this->hasMany(TransactionImportProfile::class);
+    }
 }

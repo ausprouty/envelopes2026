@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class TransactionImportProfile extends Model
@@ -27,5 +28,10 @@ class TransactionImportProfile extends Model
             FinancialAccount::class,
             'financial_account_import_profile'
         );
+    }
+
+    public function household(): BelongsTo
+    {
+        return $this->belongsTo(Household::class);
     }
 }

@@ -9,6 +9,7 @@ use App\Models\TransactionImportProfile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -51,14 +52,23 @@ class FinancialAccountController extends Controller
     }
 
     public function create(
-        Request $request,
         Household $household
     ): Response {
-
-
         return Inertia::render('households/accounts/Edit', [
             'household' => $household,
+
             'account' => null,
+
+            'importProfiles' => TransactionImportProfile::query()
+                ->where('household_id', $household->id)
+                ->orderBy('name')
+                ->get([
+                    'id',
+                    'name',
+                    'format',
+                ]),
+
+            'selectedImportProfileIds' => [],
         ]);
     }
 
@@ -66,11 +76,19 @@ class FinancialAccountController extends Controller
         Request $request,
         Household $household
     ): RedirectResponse {
+        $validated = $this->validateAccount($request, $household);
 
+        $importProfileIds = $validated['import_profile_ids'] ?? [];
 
-        $validated = $this->validateAccount($request);
+        unset($validated['import_profile_ids']);
 
-        $household->financialAccounts()->create($validated);
+        $financialAccount = $household
+            ->financialAccounts()
+            ->create($validated);
+
+        $financialAccount
+            ->importProfiles()
+            ->sync($importProfileIds);
 
         return redirect()
             ->route('households.accounts.index', $household);
@@ -87,6 +105,8 @@ class FinancialAccountController extends Controller
 
         $financialAccount->load('importProfiles');
 
+
+
         return Inertia::render('households/accounts/Edit', [
             'account' => $financialAccount,
 
@@ -97,6 +117,7 @@ class FinancialAccountController extends Controller
             ],
 
             'importProfiles' => TransactionImportProfile::query()
+                ->where('household_id', $household->id)
                 ->orderBy('name')
                 ->get([
                     'id',
@@ -110,34 +131,36 @@ class FinancialAccountController extends Controller
                 ->values(),
         ]);
     }
-public function update(
-    Request $request,
-    Household $household,
-    FinancialAccount $financialAccount
-): RedirectResponse {
-    abort_unless(
-        $financialAccount->household_id === $household->id,
-        404
-    );
+    public function update(
+        Request $request,
+        Household $household,
+        FinancialAccount $financialAccount
+    ): RedirectResponse {
+        abort_unless(
+            $financialAccount->household_id === $household->id,
+            404
+        );
 
-    $validated = $this->validateAccount($request);
+        $validated = $this->validateAccount($request, $household);
 
-    $importProfileIds = $validated['import_profile_ids'] ?? [];
+        $importProfileIds = $validated['import_profile_ids'] ?? [];
 
-    unset($validated['import_profile_ids']);
+        unset($validated['import_profile_ids']);
 
-    $financialAccount->update($validated);
+        $financialAccount->update($validated);
 
-    $financialAccount
-        ->importProfiles()
-        ->sync($importProfileIds);
+        $financialAccount
+            ->importProfiles()
+            ->sync($importProfileIds);
 
-    return redirect()
-        ->route('households.accounts.index', $household);
-}
+        return redirect()
+            ->route('households.accounts.index', $household);
+    }
 
-    private function validateAccount(Request $request): array
-    {
+    private function validateAccount(
+        Request $request,
+        Household $household
+    ): array {
         return $request->validate([
             'account_name' => ['required', 'string', 'max:150'],
 
@@ -164,7 +187,8 @@ public function update(
 
             'import_profile_ids.*' => [
                 'integer',
-                'exists:transaction_import_profiles,id',
+                Rule::exists('transaction_import_profiles', 'id')
+                    ->where('household_id', $household->id),
             ],
 
             'include_in_net_worth' => ['boolean'],
@@ -175,11 +199,6 @@ public function update(
 
             'legacy_paidby_id' => ['nullable', 'integer'],
 
-            'transaction_import_profile_id' => [
-                'nullable',
-                'integer',
-                'exists:transaction_import_profiles,id',
-            ],
 
             'warning_balance' => ['nullable', 'numeric'],
 
