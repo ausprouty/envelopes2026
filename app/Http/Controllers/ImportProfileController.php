@@ -58,7 +58,7 @@ class ImportProfileController extends Controller
                 'description_field',
                 'format',
                 'header_signature',
-                'payee_field',
+
             ]);
 
         return Inertia::render(
@@ -177,10 +177,6 @@ class ImportProfileController extends Controller
                 'max:255',
             ],
 
-            'payee_field' => [
-                'nullable',
-                'in:NAME,MEMO',
-            ],
         ]);
     }
 }

@@ -21,7 +21,7 @@ class TransactionImportProfile extends Model
         'header_signature',
         'ledger_balance_column',
         'name',
-        'payee_field',
+    
     ];
 
     public function financialAccounts(): BelongsToMany

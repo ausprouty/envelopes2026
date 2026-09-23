@@ -13,6 +13,7 @@ const props = defineProps<{
         payee_field: string | null;
         description_field: string | null;
         header_signature: string | null;
+        ledger_balance_field: string | null;
         date_column: string | null;
         amount_column: string | null;
         debit_column: string | null;
@@ -53,11 +54,11 @@ const props = defineProps<{
                         </th>
 
                         <th class="px-4 py-3 text-left font-medium">
-                            Payee Field
+                            Description Field
                         </th>
 
-                        <th class="px-4 py-3 text-left font-medium">
-                            Description Field
+                         <th class="px-4 py-3 text-left font-medium">
+                             Ledger Balance Field
                         </th>
 
                         <th class="px-4 py-3 text-left font-medium">
@@ -75,12 +76,13 @@ const props = defineProps<{
                             </Link>
                         </td>
 
-                        <td class="px-4 py-3">
-                            {{ profile.payee_field ?? '—' }}
-                        </td>
+
 
                         <td class="px-4 py-3">
                             {{ profile.description_field ?? '—' }}
+                        </td>
+                        <td class="px-4 py-3">
+                            {{ profile.ledger_balance_field ?? '—' }}
                         </td>
 
                         <td class="px-4 py-3">

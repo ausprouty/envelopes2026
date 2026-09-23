@@ -14,7 +14,7 @@ class Transaction extends Model
         'category_id',
         'transaction_date',
         'description',
-        'payee',
+        'details',
         'amount',
         'currency',
         'posted_date',

@@ -8,7 +8,7 @@ class QfxParser
 {
     public function parse(
         string $contents,
-        string $payeeField = 'MEMO'
+        string $descriptionField = 'MEMO'
     ): array {
         $contents = trim($contents);
 
@@ -25,9 +25,9 @@ class QfxParser
         );
 
         foreach ($matches[1] as $transactionBlock) {
-            $payee = $this->getTagValue(
+            $description = $this->getTagValue(
                 $transactionBlock,
-                $payeeField
+                $descriptionField
             );
 
             $transactions[] = [
@@ -43,7 +43,10 @@ class QfxParser
                     'FITID'
                 ),
 
-                'payee' => $payee,
+                // This is the bank-supplied description.
+                // Which OFX tag supplies it is determined
+                // by the transaction import profile.
+                'description' => $description,
 
                 'transaction_date' => $this->parseDate(
                     $this->getTagValue(

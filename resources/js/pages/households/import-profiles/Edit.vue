@@ -13,12 +13,13 @@ interface ImportProfile {
     date_column: string | null;
     date_format: string | null;
     debit_column: string | null;
-    payee_column: string | null;
+    description_column: string | null;
     format: string;
     header_signature: string | null;
     id: number;
+    ledger_balance_column: string | null;
     name: string;
-    payee_field: string | null;
+    description_field: string | null;
 }
 
 const props = defineProps<{
@@ -32,11 +33,12 @@ const form = useForm({
     date_column: props.profile.date_column ?? '',
     date_format: props.profile.date_format ?? 'm/d/Y',
     debit_column: props.profile.debit_column ?? '',
-    payee_column: props.profile.payee_column ?? '',
+    description_column: props.profile.description_column ?? '',
     format: props.profile.format ?? 'csv',
     header_signature: props.profile.header_signature ?? '',
+    ledger_balance_column: props.profile.ledger_balance_column ?? '',
     name: props.profile.name,
-    payee_field: props.profile.payee_field ?? '',
+    description_field: props.profile.description_field ?? '',
 });
 
 const isCsv = computed(
@@ -115,16 +117,16 @@ function submit(): void {
                     </h2>
 
                     <p class="mt-1 text-sm text-muted-foreground">
-                        Choose which OFX field contains the payee.
+                        Choose which OFX field contains the description.
                     </p>
                 </div>
 
                 <div>
-                    <label for="payee_field" class="mb-2 block text-sm font-medium">
+                    <label for="description_field" class="mb-2 block text-sm font-medium">
                         Payee Field
                     </label>
 
-                    <select id="payee_field" v-model="form.payee_field"
+                    <select id="description_field" v-model="form.description_field"
                         class="w-full rounded-md border border-gray-400 px-3 py-2 focus:border-[#477b67] focus:ring-2 focus:ring-[#477b67]/20">
                         <option value="">
                             Select field
@@ -157,7 +159,7 @@ function submit(): void {
 
                 <div>
                     <label for="header_signature" class="mb-2 block text-sm font-medium">
-                        Header Signature
+                        Header Signature ( The column headings that identify this CSV file format. Enter them exactly as they appear in the first row of the bank’s CSV file, separated by |. )
                     </label>
 
                     <input id="header_signature" v-model="form.header_signature" type="text"
@@ -174,11 +176,11 @@ function submit(): void {
                 </div>
 
                 <div>
-                    <label for="payee_column" class="mb-2 block text-sm font-medium">
-                        Payee Column
+                    <label for="description_column" class="mb-2 block text-sm font-medium">
+                        Description Column
                     </label>
 
-                    <input id="payee_column" v-model="form.payee_column" type="text"
+                    <input id="description_column" v-model="form.description_column" type="text"
                         class="w-full rounded-md border border-gray-400 px-3 py-2 focus:border-[#477b67] focus:ring-2 focus:ring-[#477b67]/20" />
                 </div>
 
@@ -209,6 +211,14 @@ function submit(): void {
                         <input id="credit_column" v-model="form.credit_column" type="text"
                             class="w-full rounded-md border border-gray-400 px-3 py-2 focus:border-[#477b67] focus:ring-2 focus:ring-[#477b67]/20" />
                     </div>
+                </div>
+                <div>
+                    <label for="ledger_balance_column" class="mb-2 block text-sm font-medium">
+                        Ledger Balance Column
+                    </label>
+
+                    <input id="ledger_balance_column" v-model="form.ledger_balance_column" type="text"
+                        class="w-full rounded-md border border-gray-400 px-3 py-2 focus:border-[#477b67] focus:ring-2 focus:ring-[#477b67]/20" />
                 </div>
 
                 <div>

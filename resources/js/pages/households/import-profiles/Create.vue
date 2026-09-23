@@ -14,14 +14,14 @@ const form = useForm({
     format: 'csv',
     header_signature: '',
     date_column: '',
-    payee_column: '',
+    description_column: '',
     amount_column: '',
     debit_column: '',
     credit_column: '',
     ledger_balance_column: '',
     available_balance_column: '',
     date_format: 'm/d/Y',
-    payee_field: '',
+
 
 });
 

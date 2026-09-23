@@ -276,7 +276,7 @@ class TransactionImportController extends Controller
 
         $transactions = $qfxParser->parse(
             $contents,
-            $profile->payee_field ?? 'MEMO',
+            $profile->description_field ?? 'MEMO',
 
         );
 
