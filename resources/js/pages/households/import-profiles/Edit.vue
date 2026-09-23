@@ -13,8 +13,7 @@ interface ImportProfile {
     date_column: string | null;
     date_format: string | null;
     debit_column: string | null;
-    description_column: string | null;
-    description_field: string | null;
+    payee_column: string | null;
     format: string;
     header_signature: string | null;
     id: number;
@@ -33,8 +32,7 @@ const form = useForm({
     date_column: props.profile.date_column ?? '',
     date_format: props.profile.date_format ?? 'm/d/Y',
     debit_column: props.profile.debit_column ?? '',
-    description_column: props.profile.description_column ?? '',
-    description_field: props.profile.description_field ?? '',
+    payee_column: props.profile.payee_column ?? '',
     format: props.profile.format ?? 'csv',
     header_signature: props.profile.header_signature ?? '',
     name: props.profile.name,
@@ -117,7 +115,7 @@ function submit(): void {
                     </h2>
 
                     <p class="mt-1 text-sm text-muted-foreground">
-                        Choose which OFX fields contain the payee and description.
+                        Choose which OFX field contains the payee.
                     </p>
                 </div>
 
@@ -142,26 +140,7 @@ function submit(): void {
                     </select>
                 </div>
 
-                <div>
-                    <label for="description_field" class="mb-2 block text-sm font-medium">
-                        Description Field
-                    </label>
 
-                    <select id="description_field" v-model="form.description_field"
-                        class="w-full rounded-md border border-gray-400 px-3 py-2 focus:border-[#477b67] focus:ring-2 focus:ring-[#477b67]/20">
-                        <option value="">
-                            None
-                        </option>
-
-                        <option value="NAME">
-                            NAME
-                        </option>
-
-                        <option value="MEMO">
-                            MEMO
-                        </option>
-                    </select>
-                </div>
             </div>
 
             <!-- CSV -->
@@ -195,11 +174,11 @@ function submit(): void {
                 </div>
 
                 <div>
-                    <label for="description_column" class="mb-2 block text-sm font-medium">
-                        Payee / Description Column
+                    <label for="payee_column" class="mb-2 block text-sm font-medium">
+                        Payee Column
                     </label>
 
-                    <input id="description_column" v-model="form.description_column" type="text"
+                    <input id="payee_column" v-model="form.payee_column" type="text"
                         class="w-full rounded-md border border-gray-400 px-3 py-2 focus:border-[#477b67] focus:ring-2 focus:ring-[#477b67]/20" />
                 </div>
 

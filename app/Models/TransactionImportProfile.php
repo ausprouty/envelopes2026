@@ -10,6 +10,7 @@ class TransactionImportProfile extends Model
 {
     protected $fillable = [
         'amount_column',
+        'available_balance_column',
         'credit_column',
         'date_column',
         'date_format',
@@ -18,6 +19,7 @@ class TransactionImportProfile extends Model
         'description_field',
         'format',
         'header_signature',
+        'ledger_balance_column',
         'name',
         'payee_field',
     ];

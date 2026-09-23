@@ -43,6 +43,7 @@ class FinancialAccountController extends Controller
                     'account_name',
                     'institution_name',
                     'account_type',
+                    'category_type',
                     'currency',
                     'account_reference',
                     'warning_balance',
@@ -169,6 +170,15 @@ class FinancialAccountController extends Controller
             'account_type' => [
                 'required',
                 'in:cash,checking,savings,credit_card,term_deposit,investment,retirement,superannuation,crypto,reimbursement,ministry,virtual,other',
+            ],
+            'category_type' => [
+                'required',
+                Rule::in([
+                    'personal',
+                    'ministry',
+                    'loan',
+                    'investment',
+                ]),
             ],
 
             'available_for_spending' => ['boolean'],

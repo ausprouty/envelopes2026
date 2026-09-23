@@ -8,8 +8,7 @@ class QfxParser
 {
     public function parse(
         string $contents,
-        string $payeeField = 'MEMO',
-        ?string $descriptionField = null
+        string $payeeField = 'MEMO'
     ): array {
         $contents = trim($contents);
 
@@ -31,13 +30,6 @@ class QfxParser
                 $payeeField
             );
 
-            $description = $descriptionField
-                ? $this->getTagValue(
-                    $transactionBlock,
-                    $descriptionField
-                )
-                : null;
-
             $transactions[] = [
                 'amount' => $this->parseAmount(
                     $this->getTagValue(
@@ -45,8 +37,6 @@ class QfxParser
                         'TRNAMT'
                     )
                 ),
-
-                'description' => $description,
 
                 'external_id' => $this->getTagValue(
                     $transactionBlock,
@@ -123,7 +113,7 @@ class QfxParser
         if (
             preg_match(
                 '/<' . preg_quote($tag, '/') . '>(.*?)<\/'
-                . preg_quote($tag, '/') . '>/si',
+                    . preg_quote($tag, '/') . '>/si',
                 $contents,
                 $match
             )

@@ -13,6 +13,7 @@ interface Account {
     account_name: string;
     account_reference: string | null;
     account_type: string;
+    category_type: string;
     available_for_spending: boolean;
     closed_at: string | null;
     credit_limit: number | null;
@@ -43,6 +44,7 @@ const form = useForm({
     account_name: props.account?.account_name ?? '',
     account_reference: props.account?.account_reference ?? '',
     account_type: props.account?.account_type ?? 'checking',
+    category_type: props.account?.category_type ?? 'personal',
     available_for_spending:
         props.account?.available_for_spending ?? false,
     closed_at: props.account?.closed_at ?? '',
@@ -158,6 +160,29 @@ function submit() {
 
                         <p v-if="form.errors.account_type" class="mt-1 text-sm text-red-600">
                             {{ form.errors.account_type }}
+                        </p>
+                    </div>
+
+                    <!-- Category type -->
+                    <div>
+                        <label for="category_type" class="block text-sm font-medium text-gray-700">
+                            Reporting Category
+                        </label>
+
+                        <select id="category_type" v-model="form.category_type"
+                            class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-[#477b67] focus:outline-none focus:ring-1 focus:ring-[#477b67]">
+                            <option value="personal">Personal</option>
+                            <option value="ministry">Ministry</option>
+                            <option value="loan">Loan</option>
+                            <option value="investment">Investment</option>
+                        </select>
+
+                        <p class="mt-1 text-xs text-gray-500">
+                            Determines how this account appears in dashboard and reporting.
+                        </p>
+
+                        <p v-if="form.errors.category_type" class="mt-1 text-sm text-red-600">
+                            {{ form.errors.category_type }}
                         </p>
                     </div>
 

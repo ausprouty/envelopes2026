@@ -12,17 +12,17 @@ const props = defineProps<{
 const form = useForm({
     name: '',
     format: 'csv',
-
     header_signature: '',
     date_column: '',
-    description_column: '',
+    payee_column: '',
     amount_column: '',
     debit_column: '',
     credit_column: '',
+    ledger_balance_column: '',
+    available_balance_column: '',
     date_format: 'm/d/Y',
-
     payee_field: '',
-    description_field: '',
+
 });
 
 const isCsv = computed(
@@ -100,7 +100,7 @@ function submit(): void {
                     </h2>
 
                     <p class="mt-1 text-sm text-muted-foreground">
-                        Choose which OFX fields contain the payee and description.
+                        Choose which OFX field contains the payee.
                     </p>
                 </div>
 
@@ -125,26 +125,7 @@ function submit(): void {
                     </select>
                 </div>
 
-                <div>
-                    <label for="description_field" class="mb-2 block text-sm font-medium">
-                        Description Field
-                    </label>
 
-                    <select id="description_field" v-model="form.description_field"
-                        class="w-full rounded-md border border-gray-400 px-3 py-2">
-                        <option value="">
-                            None
-                        </option>
-
-                        <option value="NAME">
-                            NAME
-                        </option>
-
-                        <option value="MEMO">
-                            MEMO
-                        </option>
-                    </select>
-                </div>
             </div>
 
             <!-- CSV Fields -->
@@ -178,11 +159,11 @@ function submit(): void {
                 </div>
 
                 <div>
-                    <label for="description_column" class="mb-2 block text-sm font-medium">
-                        Payee / Description Column
+                    <label for="payee_column" class="mb-2 block text-sm font-medium">
+                        Payee
                     </label>
 
-                    <input id="description_column" v-model="form.description_column" type="text"
+                    <input id="payee_column" v-model="form.payee_column" type="text"
                         class="w-full rounded-md border border-gray-400 px-3 py-2" />
                 </div>
 
@@ -212,6 +193,33 @@ function submit(): void {
 
                         <input id="credit_column" v-model="form.credit_column" type="text"
                             class="w-full rounded-md border border-gray-400 px-3 py-2" />
+                    </div>
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label for="ledger_balance_column" class="mb-2 block text-sm font-medium">
+                            Ledger Balance Column
+                        </label>
+
+                        <input id="ledger_balance_column" v-model="form.ledger_balance_column" type="text"
+                            class="w-full rounded-md border border-gray-400 px-3 py-2" placeholder="Balance" />
+
+                        <p class="mt-1 text-xs text-muted-foreground">
+                            Optional. Running or posted account balance.
+                        </p>
+                    </div>
+
+                    <div>
+                        <label for="available_balance_column" class="mb-2 block text-sm font-medium">
+                            Available Balance Column
+                        </label>
+
+                        <input id="available_balance_column" v-model="form.available_balance_column" type="text"
+                            class="w-full rounded-md border border-gray-400 px-3 py-2" />
+
+                        <p class="mt-1 text-xs text-muted-foreground">
+                            Optional. Amount available to spend or borrow.
+                        </p>
                     </div>
                 </div>
 

@@ -13,6 +13,7 @@ type Account = {
     account_name: string;
     available_balance: number | null;
     balance_as_of: string | null;
+    category_type: 'personal' | 'ministry' | 'loan' | 'investment';
     currency: string;
     id: number;
     latest_transaction_date: string | null;
@@ -49,6 +50,22 @@ const props = defineProps<{
 }>();
 
 const showAllAccounts = ref(false);
+
+const personalAccounts = computed(() =>
+    props.accounts.filter(account => account.category_type === 'personal'),
+);
+
+const ministryAccounts = computed(() =>
+    props.accounts.filter(account => account.category_type === 'ministry'),
+);
+
+const loanAccounts = computed(() =>
+    props.accounts.filter(account => account.category_type === 'loan'),
+);
+
+const investmentAccounts = computed(() =>
+    props.accounts.filter(account => account.category_type === 'investment'),
+);
 
 const accountTotals = computed(() => {
     const totals: Record<

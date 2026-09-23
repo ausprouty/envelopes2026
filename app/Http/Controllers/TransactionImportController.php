@@ -277,39 +277,38 @@ class TransactionImportController extends Controller
         $transactions = $qfxParser->parse(
             $contents,
             $profile->payee_field ?? 'MEMO',
-            $profile->description_field
+
         );
 
         $balances = $qfxParser->parseBalances($contents);
 
         $transactions = collect($transactions)
-    ->map(function (array $transaction) use (
-        $account,
-        $payeeCleaner
-    ) {
-        return [
-            'transaction_date' =>
-                $transaction['transaction_date'],
+            ->map(function (array $transaction) use (
+                $account,
+                $payeeCleaner
+            ) {
+                return [
+                    'transaction_date' =>
+                    $transaction['transaction_date'],
 
-            'description' =>
-                $transaction['description'] ?? '',
+                    'payee' =>
+                    $payeeCleaner->cleanWestpac(
+                        $transaction['payee'] ?? ''
+                    ),
 
-            'payee' =>
-                $payeeCleaner->cleanWestpac(
-                    $transaction['payee'] ?? ''
-                ),
+                    'description' => '',
 
-            'amount' =>
-                $transaction['amount'],
+                    'amount' =>
+                    $transaction['amount'],
 
-            'currency' =>
-                $account->currency,
+                    'currency' =>
+                    $account->currency,
 
-            'external_id' =>
-                $transaction['external_id'],
-        ];
-    })
-    ->values();
+                    'external_id' =>
+                    $transaction['external_id'],
+                ];
+            })
+            ->values();
 
         return response()->json([
             'available_balance' => $balances['available_balance'],
@@ -503,9 +502,9 @@ class TransactionImportController extends Controller
 
         foreach ($rows as $row) {
             $date = $row[$profile->date_column] ?? null;
-            $description = $row[$profile->description_column] ?? null;
+            $payee = $row[$profile->payee_column] ?? null;
 
-            if (! $date || ! $description) {
+            if (! $date || ! $payee) {
                 continue;
             }
 
@@ -545,10 +544,23 @@ class TransactionImportController extends Controller
             }
 
             $transactions[] = [
-                'transaction_date' => $parsedDate->format('Y-m-d'),
-                'description' => trim($description),
-                'amount' => $amount,
-                'currency' => $account->currency,
+                'transaction_date' =>
+                $parsedDate->format('Y-m-d'),
+
+                'payee' =>
+                trim($payee),
+
+                'description' =>
+                '',
+
+                'amount' =>
+                $amount,
+
+                'currency' =>
+                $account->currency,
+
+                'external_id' =>
+                null,
             ];
         }
 

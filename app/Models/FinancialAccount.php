@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -20,6 +21,7 @@ class FinancialAccount extends Model
         'credit_limit',
         'currency',
         'display_order',
+        'category_type',
         'include_in_net_worth',
         'institution_name',
         'is_active',
@@ -61,5 +63,31 @@ class FinancialAccount extends Model
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);
+    }
+
+    public function balanceHistory(): HasMany
+    {
+        return $this->hasMany(FinancialAccountBalanceHistory::class)
+            ->orderBy('balance_date');
+    }
+
+    public function scopePersonal(Builder $query): Builder
+    {
+        return $query->where('category_type', 'personal');
+    }
+
+    public function scopeMinistry(Builder $query): Builder
+    {
+        return $query->where('category_type', 'ministry');
+    }
+
+    public function scopeLoans(Builder $query): Builder
+    {
+        return $query->where('category_type', 'loan');
+    }
+
+    public function scopeInvestments(Builder $query): Builder
+    {
+        return $query->where('category_type', 'investment');
     }
 }
