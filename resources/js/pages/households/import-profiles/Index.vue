@@ -10,10 +10,12 @@ const props = defineProps<{
     profiles: Array<{
         id: number;
         name: string;
-        payee_field: string | null;
+        format: string;
         description_field: string | null;
+        description_column: string | null;
         header_signature: string | null;
-        ledger_balance_field: string | null;
+        ledger_balance_column: string | null;
+        available_balance_column: string | null;
         date_column: string | null;
         amount_column: string | null;
         debit_column: string | null;
@@ -21,6 +23,22 @@ const props = defineProps<{
         date_format: string | null;
     }>;
 }>();
+
+function displayDateFormat(format: string | null): string {
+    switch (format) {
+        case 'd/m/Y':
+            return 'DD/MM/CCYY';
+
+        case 'm/d/Y':
+            return 'MM/DD/CCYY';
+
+        case 'Y-m-d':
+            return 'CCYY-MM-DD';
+
+        default:
+            return format ?? '—';
+    }
+}
 </script>
 
 <template>
@@ -54,11 +72,11 @@ const props = defineProps<{
                         </th>
 
                         <th class="px-4 py-3 text-left font-medium">
-                            Description Field
+                            Description Source
                         </th>
 
-                         <th class="px-4 py-3 text-left font-medium">
-                             Ledger Balance Field
+                        <th class="px-4 py-3 text-left font-medium">
+                            Ledger Balance
                         </th>
 
                         <th class="px-4 py-3 text-left font-medium">
@@ -76,17 +94,26 @@ const props = defineProps<{
                             </Link>
                         </td>
 
-
-
                         <td class="px-4 py-3">
-                            {{ profile.description_field ?? '—' }}
+                            {{
+                                profile.format === 'csv'
+                                    ? (profile.description_column ?? '—')
+                                    : (profile.description_field ?? '—')
+                            }}
                         </td>
-                        <td class="px-4 py-3">
-                            {{ profile.ledger_balance_field ?? '—' }}
-                        </td>
 
                         <td class="px-4 py-3">
-                            {{ profile.date_format ?? '—' }}
+                            {{
+                                profile.format === 'csv'
+                                    ? (profile.ledger_balance_column ?? '—')
+                                    : 'OFX'
+                            }}
+                        </td>
+
+
+
+                        <td class="px-4 py-3">
+                             {{ displayDateFormat(profile.date_format)  ?? '—'}}
                         </td>
                     </tr>
 

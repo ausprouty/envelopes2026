@@ -16,7 +16,7 @@ interface DuplicateCheckTransaction {
     amount: number;
     external_id?: string | null;
     import_hash: string;
-    payee: string;
+    description: string;
     transaction_date: string;
 }
 
@@ -35,6 +35,7 @@ interface Household {
 
 interface ImportProfile {
     amount_column: string | null;
+    available_balance_column: string | null;
     credit_column: string | null;
     date_column: string | null;
     date_format: string | null;
@@ -44,17 +45,19 @@ interface ImportProfile {
     format: string;
     header_signature: string | null;
     id: number;
+    ledger_balance_column: string | null;
     name: string;
-    payee_field: string | null;
 }
 
 interface PreviewTransaction {
     amount: number;
+    available_balance?: number | null;
     currency: string;
     description: string;
+    details?: string | null;
     external_id?: string | null;
     import_hash?: string;
-    payee: string;
+    ledger_balance?: number | null;
     status?: TransactionStatus;
     transaction_date: string;
 }
@@ -63,7 +66,6 @@ interface RecentTransaction {
     currency: string;
     description: string | null;
     id: number;
-    payee: string | null;
     transaction_date: string;
 }
 
@@ -168,6 +170,50 @@ function csrfToken(): string {
             ?.getAttribute('content') ?? ''
     );
 }
+function convertDate(
+    value: string,
+    format: string | null
+): string | null {
+    const parts = value
+        .trim()
+        .match(/^(\d{1,4})[\/-](\d{1,2})[\/-](\d{1,4})$/);
+
+    if (!parts) {
+        return null;
+    }
+
+    let year: string;
+    let month: string;
+    let day: string;
+
+    switch (format) {
+        case 'd/m/Y':
+            day = parts[1];
+            month = parts[2];
+            year = parts[3];
+            break;
+
+        case 'm/d/Y':
+            month = parts[1];
+            day = parts[2];
+            year = parts[3];
+            break;
+
+        case 'Y-m-d':
+            year = parts[1];
+            month = parts[2];
+            day = parts[3];
+            break;
+
+        default:
+            return null;
+    }
+
+    month = month.padStart(2, '0');
+    day = day.padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+}
 function formatDate(value: string): string {
     return new Intl.DateTimeFormat('en-AU', {
         day: 'numeric',
@@ -247,23 +293,6 @@ function parseAmount(
         : amount;
 }
 
-function convertDate(value: string): string | null {
-    const match = value
-        .trim()
-        .match(
-            /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/
-        );
-
-    if (!match) {
-        return null;
-    }
-
-    const month = match[1].padStart(2, '0');
-    const day = match[2].padStart(2, '0');
-    const year = match[3];
-
-    return `${year}-${month}-${day}`;
-}
 
 /*
 |--------------------------------------------------------------------------
@@ -438,8 +467,6 @@ async function submitQfx(): Promise<void> {
             description:
                 transaction.description ?? '',
 
-            payee:
-                transaction.payee ?? '',
 
             status: 'new' as const,
         })
@@ -455,6 +482,25 @@ async function submitQfx(): Promise<void> {
 | CSV Import
 |--------------------------------------------------------------------------
 */
+
+async function selectCsvFile(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+
+    const file = input.files?.[0];
+
+    if (!file) {
+        return;
+    }
+
+    errorMessage.value = '';
+
+    try {
+        csv.value = await file.text();
+    } catch {
+        errorMessage.value =
+            'Unable to read the selected CSV file.';
+    }
+}
 
 async function previewCsv(): Promise<void> {
     errorMessage.value = '';
@@ -612,7 +658,10 @@ async function previewCsv(): Promise<void> {
             row[profile.date_column];
 
         const transactionDate =
-            convertDate(dateValue);
+            convertDate(
+                dateValue,
+                profile.date_format
+            );
 
         if (!transactionDate) {
             continue;
@@ -620,16 +669,16 @@ async function previewCsv(): Promise<void> {
 
         /*
         |------------------------------------------------------------------
-        | Payee
+        | Description
         |------------------------------------------------------------------
         */
 
-        const payee =
+        const description =
             row[
                 profile.description_column
             ]?.trim();
 
-        if (!payee) {
+        if (!description) {
             continue;
         }
 
@@ -684,6 +733,25 @@ async function previewCsv(): Promise<void> {
             continue;
         }
 
+        const ledgerBalance =
+            profile.ledger_balance_column
+                ? parseAmount(
+                    row[
+                    profile.ledger_balance_column
+                    ]
+                )
+                : null;
+
+        const availableBalance =
+            profile.available_balance_column
+                ? parseAmount(
+                    row[
+                    profile.available_balance_column
+                    ]
+                )
+                : null;
+
+
         /*
         |------------------------------------------------------------------
         | Add Transaction
@@ -692,10 +760,12 @@ async function previewCsv(): Promise<void> {
 
         transactions.push({
             amount,
+            available_balance: availableBalance,
             currency: account.currency,
-            description: '',
+            description,
+            details: '',
             import_hash: '',
-            payee,
+            ledger_balance: ledgerBalance,
             status: 'new',
             transaction_date: transactionDate,
         });
@@ -769,8 +839,8 @@ async function checkDuplicates(): Promise<void> {
                                 transaction.external_id ??
                                 null,
 
-                            payee:
-                                transaction.payee,
+                            description:
+                                transaction.description,
 
                             transaction_date:
                                 transaction.transaction_date,
@@ -888,24 +958,28 @@ async function importTransactions(): Promise<void> {
                     ledgerBalance.value,
 
                 transactions:
-                    newTransactions.value.map(
+                    preview.value.map(
                         transaction => ({
                             amount:
                                 transaction.amount,
+
+                            available_balance:
+                                transaction.available_balance ?? null,
 
                             currency:
                                 transaction.currency,
 
                             description:
-                                transaction.description ??
-                                '',
+                                transaction.description,
+
+                            details:
+                                transaction.details ?? null,
 
                             external_id:
-                                transaction.external_id ??
-                                null,
+                                transaction.external_id ?? null,
 
-                            payee:
-                                transaction.payee,
+                            ledger_balance:
+                                transaction.ledger_balance ?? null,
 
                             transaction_date:
                                 transaction.transaction_date,
@@ -916,7 +990,12 @@ async function importTransactions(): Promise<void> {
     );
 
     if (!response.ok) {
+        const errorData = await response.json();
+
+        console.log('Import error:', errorData);
+
         errorMessage.value =
+            errorData.message ??
             'Unable to import transactions.';
 
         return;
@@ -1005,7 +1084,7 @@ async function importTransactions(): Promise<void> {
                             </th>
 
                             <th class="p-3 text-left">
-                                Payee
+                                Description
                             </th>
 
                             <th class="p-3 text-right">
@@ -1022,11 +1101,8 @@ async function importTransactions(): Promise<void> {
                             </td>
 
                             <td class="p-3">
-                                {{
-                                    transaction.payee ||
-                                    transaction.description ||
-                                    '—'
-                                }}
+                                {{ transaction.description || '—' }}
+
                             </td>
 
                             <td class="whitespace-nowrap p-3 text-right" :class="transaction.amount < 0
@@ -1122,8 +1198,18 @@ async function importTransactions(): Promise<void> {
         " class="rounded-xl border border-gray-300">
             <div class="flex items-center justify-between px-6 py-4">
                 <div>
-                    <div class="font-medium">
-                        CSV Import
+
+                    <div>
+                        <label for="csv_file" class="mb-2 block text-sm font-medium">
+                            CSV File
+                        </label>
+
+                        <input id="csv_file" type="file" accept=".csv,text/csv" class="block w-full rounded-md border border-gray-400 px-3 py-2
+               focus:border-[#477b67] focus:ring-2 focus:ring-[#477b67]/20" @change="selectCsvFile" />
+
+                        <p class="mt-1 text-xs text-muted-foreground">
+                            Select the CSV transaction file downloaded from your bank.
+                        </p>
                     </div>
 
                     <div v-if="matchedProfile" class="mt-1 text-sm text-muted-foreground">
@@ -1152,13 +1238,14 @@ async function importTransactions(): Promise<void> {
             <div v-show="showImportForm" class="space-y-5 border-t border-gray-300 p-6">
                 <div>
                     <label for="csv_data" class="mb-2 block text-sm font-medium">
-                        Paste CSV
+                        Paste CSV Text
                     </label>
 
                     <textarea id="csv_data" v-model="csv" rows="18"
                         class="w-full rounded-md border border-gray-400 bg-background px-3 py-3 font-mono text-sm focus:border-[#477b67] focus:ring-2 focus:ring-[#477b67]/20"
                         placeholder="Paste the CSV copied from your bank here..." />
                 </div>
+
 
                 <button type="button" class="rounded-md bg-[#477b67] px-4 py-2 font-medium text-white hover:opacity-90"
                     @click="previewCsv">
@@ -1240,11 +1327,15 @@ async function importTransactions(): Promise<void> {
                             </th>
 
                             <th class="p-3 text-left">
-                                Payee
+                                Description
                             </th>
 
                             <th class="p-3 text-right">
                                 Amount
+                            </th>
+
+                            <th class="p-3 text-right">
+                                Ledger Balance
                             </th>
 
                             <th class="p-3 text-left">
@@ -1261,7 +1352,7 @@ async function importTransactions(): Promise<void> {
                             </td>
 
                             <td class="p-3">
-                                {{ transaction.payee }}
+                                {{ transaction.description }}
                             </td>
 
                             <td class="whitespace-nowrap p-3 text-right" :class="transaction.amount < 0
@@ -1278,8 +1369,21 @@ async function importTransactions(): Promise<void> {
                                     )
                                 }}
                             </td>
+                            <td class="whitespace-nowrap p-3 text-right">
+                                {{
+                                    transaction.ledger_balance !== null
+                                        ? new Intl.NumberFormat('en-AU', {
+                                            style: 'currency',
+                                            currency:
+                                                transaction.currency || 'AUD',
+                                        }).format(
+                                            Number(transaction.ledger_balance)
+                                        )
+                                        : '—'
+                                }}
+                            </td>
 
-                            <td class="p-3">
+                            <td class=" p-3">
                                 <span v-if="transaction.status === 'new'" class="font-medium text-emerald-700">
                                     New
                                 </span>

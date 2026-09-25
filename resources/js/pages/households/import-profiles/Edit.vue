@@ -9,6 +9,7 @@ interface Household {
 
 interface ImportProfile {
     amount_column: string | null;
+    available_balance_column: string | null;
     credit_column: string | null;
     date_column: string | null;
     date_format: string | null;
@@ -29,6 +30,7 @@ const props = defineProps<{
 
 const form = useForm({
     amount_column: props.profile.amount_column ?? '',
+    available_balance_column: props.profile.available_balance_column ?? '',
     credit_column: props.profile.credit_column ?? '',
     date_column: props.profile.date_column ?? '',
     date_format: props.profile.date_format ?? 'm/d/Y',
@@ -123,7 +125,7 @@ function submit(): void {
 
                 <div>
                     <label for="description_field" class="mb-2 block text-sm font-medium">
-                        Payee Field
+                        Description Field
                     </label>
 
                     <select id="description_field" v-model="form.description_field"
@@ -140,6 +142,10 @@ function submit(): void {
                             MEMO
                         </option>
                     </select>
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        Select the OFX tag that contains the most useful description
+                        supplied by this bank.
+                    </p>
                 </div>
 
 
@@ -159,11 +165,17 @@ function submit(): void {
 
                 <div>
                     <label for="header_signature" class="mb-2 block text-sm font-medium">
-                        Header Signature ( The column headings that identify this CSV file format. Enter them exactly as they appear in the first row of the bank’s CSV file, separated by |. )
+                        CSV Header Signature
                     </label>
 
                     <input id="header_signature" v-model="form.header_signature" type="text"
                         class="w-full rounded-md border border-gray-400 px-3 py-2 focus:border-[#477b67] focus:ring-2 focus:ring-[#477b67]/20" />
+
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        Enter the CSV column headings in order, exactly as they appear in the
+                        first row of the bank file, separated by |. This lets Envelopes
+                        recognize the correct import profile automatically.
+                    </p>
                 </div>
 
                 <div>
@@ -182,6 +194,9 @@ function submit(): void {
 
                     <input id="description_column" v-model="form.description_column" type="text"
                         class="w-full rounded-md border border-gray-400 px-3 py-2 focus:border-[#477b67] focus:ring-2 focus:ring-[#477b67]/20" />
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        The CSV column containing the bank's transaction description.
+                    </p>
                 </div>
 
                 <div>
@@ -212,13 +227,32 @@ function submit(): void {
                             class="w-full rounded-md border border-gray-400 px-3 py-2 focus:border-[#477b67] focus:ring-2 focus:ring-[#477b67]/20" />
                     </div>
                 </div>
-                <div>
-                    <label for="ledger_balance_column" class="mb-2 block text-sm font-medium">
-                        Ledger Balance Column
-                    </label>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label for="ledger_balance_column" class="mb-2 block text-sm font-medium">
+                            Ledger Balance Column
+                        </label>
 
-                    <input id="ledger_balance_column" v-model="form.ledger_balance_column" type="text"
-                        class="w-full rounded-md border border-gray-400 px-3 py-2 focus:border-[#477b67] focus:ring-2 focus:ring-[#477b67]/20" />
+                        <input id="ledger_balance_column" v-model="form.ledger_balance_column" type="text"
+                            class="w-full rounded-md border border-gray-400 px-3 py-2 focus:border-[#477b67] focus:ring-2 focus:ring-[#477b67]/20" />
+
+                        <p class="mt-1 text-xs text-muted-foreground">
+                            Optional. Running or posted account balance.
+                        </p>
+                    </div>
+
+                    <div>
+                        <label for="available_balance_column" class="mb-2 block text-sm font-medium">
+                            Available Balance Column
+                        </label>
+
+                        <input id="available_balance_column" v-model="form.available_balance_column" type="text"
+                            class="w-full rounded-md border border-gray-400 px-3 py-2 focus:border-[#477b67] focus:ring-2 focus:ring-[#477b67]/20" />
+
+                        <p class="mt-1 text-xs text-muted-foreground">
+                            Optional. Amount available to spend or borrow.
+                        </p>
+                    </div>
                 </div>
 
                 <div>
@@ -226,8 +260,24 @@ function submit(): void {
                         Date Format
                     </label>
 
-                    <input id="date_format" v-model="form.date_format" type="text"
-                        class="w-full rounded-md border border-gray-400 px-3 py-2 focus:border-[#477b67] focus:ring-2 focus:ring-[#477b67]/20" />
+                    <select id="date_format" v-model="form.date_format"
+                        class="w-full rounded-md border border-gray-400 px-3 py-2">
+                        <option value="d/m/Y">
+                            DD/MM/CCYY
+                        </option>
+
+                        <option value="m/d/Y">
+                            MM/DD/CCYY
+                        </option>
+
+                        <option value="Y-m-d">
+                            CCYY-MM-DD
+                        </option>
+                    </select>
+
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        Select the date format shown by the bank when choosing the export format.
+                    </p>
                 </div>
             </div>
 

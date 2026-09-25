@@ -12,7 +12,7 @@ defineProps<{
     transactions: Array<{
         id: number;
         transaction_date: string;
-        payee: string | null;
+        description: string | null;
         amount: number | string;
         currency: string;
 
@@ -111,7 +111,7 @@ function formatDate(date: string | null) {
                         </th>
 
                         <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                            Payee
+                            Description
                         </th>
                         <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700">
                             Amount
@@ -137,7 +137,7 @@ function formatDate(date: string | null) {
                         </td>
 
                         <td class="px-4 py-3 text-sm text-gray-900">
-                            {{ transaction.payee || '—' }}
+                            {{ transaction.description || '—' }}
                         </td>
                         <td class="whitespace-nowrap px-4 py-3 text-right text-sm font-medium text-gray-900">
                             {{ transaction.currency }}

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\FinancialAccount;
+use App\Models\FinancialAccountBalanceHistory;
 use App\Models\Household;
 use App\Models\Transaction;
 use App\Models\TransactionImportProfile;
@@ -38,7 +39,7 @@ class TransactionImportController extends Controller
                 'date',
             ],
 
-            'transactions.*.payee' => [
+            'transactions.*.description' => [
                 'required',
                 'string',
             ],
@@ -79,7 +80,7 @@ class TransactionImportController extends Controller
                         implode('|', [
                             $account->id,
                             $transaction['transaction_date'],
-                            trim($transaction['payee']),
+                            trim($transaction['description']),
                             number_format(
                                 (float) $transaction['amount'],
                                 2,
@@ -94,8 +95,8 @@ class TransactionImportController extends Controller
                     'transaction_date' =>
                     $transaction['transaction_date'],
 
-                    'payee' =>
-                    trim($transaction['payee']),
+                    'description' =>
+                    trim($transaction['description']),
 
                     'amount' =>
                     (float) $transaction['amount'],
@@ -238,7 +239,7 @@ class TransactionImportController extends Controller
     public function previewOfx(
         Request $request,
         Household $household,
-        PayeeCleaner $payeeCleaner,
+        PayeeCleaner $descriptionCleaner,
         QfxParser $qfxParser
     ): JsonResponse {
         $validated = $request->validate([
@@ -285,18 +286,16 @@ class TransactionImportController extends Controller
         $transactions = collect($transactions)
             ->map(function (array $transaction) use (
                 $account,
-                $payeeCleaner
+                $descriptionCleaner
             ) {
                 return [
                     'transaction_date' =>
                     $transaction['transaction_date'],
 
-                    'payee' =>
-                    $payeeCleaner->cleanWestpac(
-                        $transaction['payee'] ?? ''
+                    'description' =>
+                    $descriptionCleaner->cleanWestpac(
+                        $transaction['description'] ?? ''
                     ),
-
-                    'description' => '',
 
                     'amount' =>
                     $transaction['amount'],
@@ -336,7 +335,7 @@ class TransactionImportController extends Controller
             ->get([
                 'id',
                 'transaction_date',
-                'payee',
+                'description',
                 'description',
                 'amount',
                 'currency',
@@ -348,22 +347,160 @@ class TransactionImportController extends Controller
         Household $household
     ) {
         $validated = $request->validate([
-            'available_balance' => ['nullable', 'numeric'],
-            'balance_as_of' => ['nullable', 'date'],
-            'financial_account_id' => ['required', 'integer'],
-            'ledger_balance' => ['nullable', 'numeric'],
-            'transactions' => ['required', 'array'],
-            'transactions.*.transaction_date' => ['required', 'date'],
-            'transactions.*.payee' => ['required', 'string'],
-            'transactions.*.description' => ['nullable', 'string'],
-            'transactions.*.amount' => ['required', 'numeric'],
-            'transactions.*.currency' => ['required', 'string', 'size:3'],
-            'transactions.*.external_id' => ['nullable', 'string'],
+            /*
+     * ---------------------------------------------------------
+     * Account-level balance information
+     * ---------------------------------------------------------
+     *
+     * OFX / QFX / QBO files can contain account-level balance
+     * information in blocks such as LEDGERBAL and AVAILBAL.
+     *
+     * These values describe the account as a whole and are NOT
+     * attached to an individual transaction.
+     *
+     * CSV files usually do not use these fields. Instead, a CSV
+     * may provide a running balance on every transaction row;
+     * those values are validated further below as
+     * transactions.*.ledger_balance and
+     * transactions.*.available_balance.
+     */
+
+            'available_balance' => [
+                'nullable',
+                'numeric',
+            ],
+
+            'balance_as_of' => [
+                'nullable',
+                'date',
+            ],
+
+            'ledger_balance' => [
+                'nullable',
+                'numeric',
+            ],
+
+            /*
+     * ---------------------------------------------------------
+     * Financial account being imported into
+     * ---------------------------------------------------------
+     */
+
+            'financial_account_id' => [
+                'required',
+                'integer',
+            ],
+
+            /*
+     * ---------------------------------------------------------
+     * Imported transactions
+     * ---------------------------------------------------------
+     *
+     * Each transaction is normalized into the same structure
+     * before it reaches this method, regardless of whether it
+     * came from CSV, OFX, QFX or QBO.
+     */
+
+            'transactions' => [
+                'required',
+                'array',
+            ],
+
+            'transactions.*.transaction_date' => [
+                'required',
+                'date',
+            ],
+
+            /*
+     * Description is the text supplied by the bank.
+     *
+     * This used to be called "payee" in the transactions table.
+     * We renamed it because the bank-supplied text often contains
+     * much more than just the merchant/payee name.
+     */
+            'transactions.*.description' => [
+                'required',
+                'string',
+            ],
+
+            /*
+     * Details are entered by the user.
+     *
+     * This is where we record information we want to remember
+     * about the transaction or include on a reimbursement.
+     * Imported transactions normally begin with this blank.
+     */
+            'transactions.*.details' => [
+                'nullable',
+                'string',
+            ],
+
+            'transactions.*.amount' => [
+                'required',
+                'numeric',
+            ],
+
+            'transactions.*.currency' => [
+                'required',
+                'string',
+                'size:3',
+            ],
+
+            /*
+     * OFX/QFX/QBO transactions normally have an external FITID.
+     * CSV transactions often do not, so this is optional.
+     */
+            'transactions.*.external_id' => [
+                'nullable',
+                'string',
+            ],
+
+            /*
+     * ---------------------------------------------------------
+     * Transaction-level balance information
+     * ---------------------------------------------------------
+     *
+     * Some CSV exports, including Westpac, provide a running
+     * ledger balance on every transaction row.
+     *
+     * We deliberately preserve these values through the preview
+     * and submit process so storeBalanceHistory() can inspect the
+     * entire imported batch.
+     *
+     * From these transaction-level balances we keep:
+     *
+     *   - the latest observed balance in each calendar month
+     *     (balance_type = month_end_observed)
+     *
+     *   - the highest observed ledger balance in each calendar
+     *     year (balance_type = annual_maximum)
+     *
+     * We must NOT rely on the order of rows in the bank file.
+     * Westpac, for example, exports newest transactions first.
+     */
+
+            'transactions.*.ledger_balance' => [
+                'nullable',
+                'numeric',
+            ],
+
+            'transactions.*.available_balance' => [
+                'nullable',
+                'numeric',
+            ],
         ]);
+
+
 
         $account = FinancialAccount::query()
             ->where('household_id', $household->id)
             ->findOrFail($validated['financial_account_id']);
+
+        $this->storeBalanceHistory(
+            $account,
+            $validated['transactions']
+        );
+
         $balanceUpdates = [];
 
         if (($validated['available_balance'] ?? null) !== null) {
@@ -415,7 +552,7 @@ class TransactionImportController extends Controller
                         '.',
                         ''
                     ),
-                    mb_strtolower(trim($transaction['payee'])),
+                    mb_strtolower(trim($transaction['description'])),
                 ]));
 
                 $alreadyExists = Transaction::query()
@@ -443,11 +580,8 @@ class TransactionImportController extends Controller
                 'posted_date' =>
                 $transaction['transaction_date'],
 
-                'payee' =>
-                trim($transaction['payee']),
-
                 'description' =>
-                $transaction['description'] ?? null,
+                trim($transaction['description']),
 
                 'amount' =>
                 $transaction['amount'],
@@ -479,6 +613,190 @@ class TransactionImportController extends Controller
 
     // Private methods
 
+    private function storeBalanceHistory(
+        FinancialAccount $account,
+        array $transactions
+    ): void {
+        $transactionsWithBalances = collect($transactions)
+            ->filter(
+                fn(array $transaction) =>
+                ! empty($transaction['transaction_date'])
+                    && (
+                        ($transaction['ledger_balance'] ?? null) !== null
+                        || ($transaction['available_balance'] ?? null) !== null
+                    )
+            );
+
+        if ($transactionsWithBalances->isEmpty()) {
+            return;
+        }
+
+        /*
+     * ---------------------------------------------------------
+     * Latest observed balance in each calendar month.
+     * ---------------------------------------------------------
+     *
+     * Banks may return transactions newest-first or oldest-first,
+     * so we explicitly sort by transaction date.
+     *
+     * This is the latest balance we observed in the month.
+     * It is not necessarily a formal month-end statement balance.
+     */
+        $monthlyBalances = $transactionsWithBalances
+            ->groupBy(
+                fn(array $transaction) =>
+                substr($transaction['transaction_date'], 0, 7)
+            )
+            ->map(
+                fn($monthTransactions) =>
+                $monthTransactions
+                    ->sortByDesc('transaction_date')
+                    ->first()
+            );
+
+        foreach ($monthlyBalances as $transaction) {
+            $this->storeMonthEndObservedBalance(
+                $account,
+                $transaction
+            );
+        }
+
+        /*
+     * ---------------------------------------------------------
+     * Highest observed ledger balance in each calendar year.
+     * ---------------------------------------------------------
+     *
+     * This is useful for annual reporting because the highest
+     * balance may occur on any transaction, not at month end.
+     */
+        $annualMaximums = $transactionsWithBalances
+            ->filter(
+                fn(array $transaction) => ($transaction['ledger_balance'] ?? null) !== null
+            )
+            ->groupBy(
+                fn(array $transaction) =>
+                substr($transaction['transaction_date'], 0, 4)
+            )
+            ->map(
+                fn($yearTransactions) =>
+                $yearTransactions
+                    ->sortByDesc('ledger_balance')
+                    ->first()
+            );
+
+        foreach ($annualMaximums as $transaction) {
+            $this->storeAnnualMaximumBalance(
+                $account,
+                $transaction
+            );
+        }
+    }
+
+    private function storeMonthEndObservedBalance(
+        FinancialAccount $account,
+        array $transaction
+    ): void {
+        $date = $transaction['transaction_date'];
+
+        $year = substr($date, 0, 4);
+        $month = substr($date, 5, 2);
+
+        $existing = FinancialAccountBalanceHistory::query()
+            ->where('financial_account_id', $account->id)
+            ->where('balance_type', 'month_end_observed')
+            ->whereYear('balance_date', $year)
+            ->whereMonth('balance_date', $month)
+            ->first();
+
+        /*
+     * Keep the latest observed balance for this month.
+     */
+        if (
+            $existing
+            && $existing->balance_date >= $date
+        ) {
+            return;
+        }
+
+        if ($existing) {
+            $existing->delete();
+        }
+
+        FinancialAccountBalanceHistory::create([
+            'financial_account_id' => $account->id,
+
+            'ledger_balance' =>
+            $transaction['ledger_balance'] ?? null,
+
+            'available_balance' =>
+            $transaction['available_balance'] ?? null,
+
+            'balance_date' =>
+            $date,
+
+            'balance_type' =>
+            'month_end_observed',
+
+            'source' =>
+            'csv_import',
+        ]);
+    }
+
+    private function storeAnnualMaximumBalance(
+        FinancialAccount $account,
+        array $transaction
+    ): void {
+        $date = $transaction['transaction_date'];
+        $year = substr($date, 0, 4);
+
+        $newBalance = $transaction['ledger_balance'] ?? null;
+
+        if ($newBalance === null) {
+            return;
+        }
+
+        $existing = FinancialAccountBalanceHistory::query()
+            ->where('financial_account_id', $account->id)
+            ->where('balance_type', 'annual_maximum')
+            ->whereYear('balance_date', $year)
+            ->first();
+
+        /*
+     * Keep the highest ledger balance observed in this
+     * calendar year, even across overlapping imports.
+     */
+        if (
+            $existing
+            && $existing->ledger_balance !== null
+            && (float) $existing->ledger_balance >= (float) $newBalance
+        ) {
+            return;
+        }
+
+        if ($existing) {
+            $existing->delete();
+        }
+
+        FinancialAccountBalanceHistory::create([
+            'financial_account_id' => $account->id,
+
+            'ledger_balance' =>
+            $newBalance,
+
+            'available_balance' =>
+            $transaction['available_balance'] ?? null,
+
+            'balance_date' =>
+            $date,
+
+            'balance_type' =>
+            'annual_maximum',
+
+            'source' =>
+            'csv_import',
+        ]);
+    }
+
     private function accounts(Household $household)
     {
         return FinancialAccount::query()
@@ -502,9 +820,9 @@ class TransactionImportController extends Controller
 
         foreach ($rows as $row) {
             $date = $row[$profile->date_column] ?? null;
-            $payee = $row[$profile->payee_column] ?? null;
+            $description = $row[$profile->description_column] ?? null;
 
-            if (! $date || ! $payee) {
+            if (! $date || ! $description) {
                 continue;
             }
 
@@ -543,14 +861,32 @@ class TransactionImportController extends Controller
                 continue;
             }
 
+            $ledgerBalance = null;
+
+            if ($profile->ledger_balance_column) {
+                $ledgerBalance = $this->parseAmount(
+                    $row[$profile->ledger_balance_column] ?? null
+                );
+            }
+
+            $availableBalance = null;
+
+            if ($profile->available_balance_column) {
+                $availableBalance = $this->parseAmount(
+                    $row[$profile->available_balance_column] ?? null
+                );
+            }
+
             $transactions[] = [
                 'transaction_date' =>
                 $parsedDate->format('Y-m-d'),
 
-                'payee' =>
-                trim($payee),
-
+                // Bank-supplied transaction description.
                 'description' =>
+                trim($description),
+
+                // User-entered information is blank during import.
+                'details' =>
                 '',
 
                 'amount' =>
@@ -561,6 +897,16 @@ class TransactionImportController extends Controller
 
                 'external_id' =>
                 null,
+
+                // Balance information is kept during normalization so that
+                // the completed import can determine monthly openings,
+                // annual maximums, and year-end balances without depending
+                // on the bank's row order.
+                'ledger_balance' =>
+                $ledgerBalance,
+
+                'available_balance' =>
+                $availableBalance,
             ];
         }
 

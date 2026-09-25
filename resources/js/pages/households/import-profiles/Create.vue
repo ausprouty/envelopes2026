@@ -15,14 +15,13 @@ const form = useForm({
     header_signature: '',
     date_column: '',
     description_column: '',
+    description_field: '',
     amount_column: '',
     debit_column: '',
     credit_column: '',
     ledger_balance_column: '',
     available_balance_column: '',
     date_format: 'm/d/Y',
-
-
 });
 
 const isCsv = computed(
@@ -100,16 +99,16 @@ function submit(): void {
                     </h2>
 
                     <p class="mt-1 text-sm text-muted-foreground">
-                        Choose which OFX field contains the payee.
+                        Choose which OFX field contains the bank's transaction description.
                     </p>
                 </div>
 
                 <div>
-                    <label for="payee_field" class="mb-2 block text-sm font-medium">
-                        Payee Field
+                    <label for="description_field" class="mb-2 block text-sm font-medium">
+                        Description Field
                     </label>
 
-                    <select id="payee_field" v-model="form.payee_field"
+                    <select id="description_field" v-model="form.description_field"
                         class="w-full rounded-md border border-gray-400 px-3 py-2">
                         <option value="">
                             Select field
@@ -123,9 +122,12 @@ function submit(): void {
                             MEMO
                         </option>
                     </select>
+
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        Select the OFX tag that contains the most useful description
+                        supplied by this bank.
+                    </p>
                 </div>
-
-
             </div>
 
             <!-- CSV Fields -->
@@ -142,11 +144,18 @@ function submit(): void {
 
                 <div>
                     <label for="header_signature" class="mb-2 block text-sm font-medium">
-                        Header Signature
+                        CSV Header Signature
                     </label>
 
                     <input id="header_signature" v-model="form.header_signature" type="text"
-                        class="w-full rounded-md border border-gray-400 px-3 py-2" />
+                        class="w-full rounded-md border border-gray-400 px-3 py-2"
+                        placeholder="Details|Posting Date|Description|Amount|Type|Balance" />
+
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        Enter the CSV column headings in order, exactly as they appear in
+                        the file, separated by |. This is used to recognize the correct
+                        import profile automatically.
+                    </p>
                 </div>
 
                 <div>
@@ -159,12 +168,16 @@ function submit(): void {
                 </div>
 
                 <div>
-                    <label for="payee_column" class="mb-2 block text-sm font-medium">
-                        Payee
+                    <label for="description_column" class="mb-2 block text-sm font-medium">
+                        Description Column
                     </label>
 
-                    <input id="payee_column" v-model="form.payee_column" type="text"
-                        class="w-full rounded-md border border-gray-400 px-3 py-2" />
+                    <input id="description_column" v-model="form.description_column" type="text"
+                        class="w-full rounded-md border border-gray-400 px-3 py-2" placeholder="Description" />
+
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        The CSV column containing the bank's transaction description.
+                    </p>
                 </div>
 
                 <div>
@@ -228,8 +241,24 @@ function submit(): void {
                         Date Format
                     </label>
 
-                    <input id="date_format" v-model="form.date_format" type="text"
-                        class="w-full rounded-md border border-gray-400 px-3 py-2" />
+                    <select id="date_format" v-model="form.date_format"
+                        class="w-full rounded-md border border-gray-400 px-3 py-2">
+                        <option value="d/m/Y">
+                            DD/MM/CCYY
+                        </option>
+
+                        <option value="m/d/Y">
+                            MM/DD/CCYY
+                        </option>
+
+                        <option value="Y-m-d">
+                            CCYY-MM-DD
+                        </option>
+                    </select>
+
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        Select the date format shown by the bank when choosing the export format.
+                    </p>
                 </div>
             </div>
 

@@ -12,6 +12,7 @@ class FinancialAccountBalanceHistory extends Model
         'ledger_balance',
         'available_balance',
         'balance_date',
+        'balance_type',
         'source',
     ];
 

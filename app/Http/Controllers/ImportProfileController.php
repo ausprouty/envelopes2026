@@ -50,6 +50,7 @@ class ImportProfileController extends Controller
                 'id',
                 'name',
                 'amount_column',
+                'available_balance_column',
                 'credit_column',
                 'date_column',
                 'date_format',
@@ -58,7 +59,7 @@ class ImportProfileController extends Controller
                 'description_field',
                 'format',
                 'header_signature',
-
+                'ledger_balance_column',
             ]);
 
         return Inertia::render(
@@ -75,6 +76,8 @@ class ImportProfileController extends Controller
         Household $household
     ): RedirectResponse {
         $validated = $this->validateProfile($request);
+
+        $validated = $this->cleanProfileData($validated);
 
         $household
             ->transactionImportProfiles()
@@ -97,6 +100,8 @@ class ImportProfileController extends Controller
         );
 
         $validated = $this->validateProfile($request);
+
+        $validated = $this->cleanProfileData($validated);
 
         $importProfile->update($validated);
 
@@ -170,6 +175,17 @@ class ImportProfileController extends Controller
                 'nullable',
                 'string',
             ],
+            'ledger_balance_column' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'available_balance_column' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
 
             'name' => [
                 'required',
@@ -179,4 +195,28 @@ class ImportProfileController extends Controller
 
         ]);
     }
+    private function cleanProfileData(array $data): array
+{
+    if ($data['format'] === 'csv') {
+        // OFX/QFX/QBO-only setting.
+        $data['description_field'] = null;
+    }
+
+    if ($data['format'] === 'ofx') {
+        // CSV-only settings.
+        $data['header_signature'] = null;
+        $data['date_column'] = null;
+        $data['description_column'] = null;
+        $data['amount_column'] = null;
+        $data['debit_column'] = null;
+        $data['credit_column'] = null;
+        $data['ledger_balance_column'] = null;
+        $data['available_balance_column'] = null;
+
+        // OFX dates come from DTPOSTED rather than a CSV date format.
+        $data['date_format'] = null;
+    }
+
+    return $data;
+}
 }
