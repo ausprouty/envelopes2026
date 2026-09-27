@@ -11,6 +11,7 @@ class TransactionImportProfile extends Model
     protected $fillable = [
         'amount_column',
         'available_balance_column',
+        'bank_record_id_column',
         'credit_column',
         'date_column',
         'date_format',
@@ -21,7 +22,7 @@ class TransactionImportProfile extends Model
         'header_signature',
         'ledger_balance_column',
         'name',
-    
+
     ];
 
     public function financialAccounts(): BelongsToMany

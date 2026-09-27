@@ -10,17 +10,18 @@ interface Household {
 interface ImportProfile {
     amount_column: string | null;
     available_balance_column: string | null;
+    bank_record_id_column: string | null;
     credit_column: string | null;
     date_column: string | null;
     date_format: string | null;
     debit_column: string | null;
     description_column: string | null;
+    description_field: string | null;
     format: string;
     header_signature: string | null;
     id: number;
     ledger_balance_column: string | null;
     name: string;
-    description_field: string | null;
 }
 
 const props = defineProps<{
@@ -31,16 +32,17 @@ const props = defineProps<{
 const form = useForm({
     amount_column: props.profile.amount_column ?? '',
     available_balance_column: props.profile.available_balance_column ?? '',
+    bank_record_id_column: props.profile.bank_record_id_column ?? '',
     credit_column: props.profile.credit_column ?? '',
     date_column: props.profile.date_column ?? '',
     date_format: props.profile.date_format ?? 'm/d/Y',
     debit_column: props.profile.debit_column ?? '',
     description_column: props.profile.description_column ?? '',
+    description_field: props.profile.description_field ?? '',
     format: props.profile.format ?? 'csv',
     header_signature: props.profile.header_signature ?? '',
     ledger_balance_column: props.profile.ledger_balance_column ?? '',
     name: props.profile.name,
-    description_field: props.profile.description_field ?? '',
 });
 
 const isCsv = computed(
@@ -253,6 +255,20 @@ function submit(): void {
                             Optional. Amount available to spend or borrow.
                         </p>
                     </div>
+                </div>
+
+                <div>
+                    <label for="bank_record_id_column" class="mb-2 block text-sm font-medium">
+                        Bank Record ID Column
+                    </label>
+
+                    <input id="bank_record_id_column" v-model="form.bank_record_id_column" type="text"
+                        class="w-full rounded-md border border-gray-400 px-3 py-2" placeholder="Transaction ID" />
+
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        The CSV column containing the bank's unique transaction identifier. Leave blank if the bank does
+                        not provide one.
+                    </p>
                 </div>
 
                 <div>

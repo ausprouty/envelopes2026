@@ -34,9 +34,15 @@ class TransactionImportController extends Controller
                 'array',
             ],
 
-            'transactions.*.transaction_date' => [
+            'transactions.*.amount' => [
                 'required',
-                'date',
+                'numeric',
+            ],
+
+            'transactions.*.bank_record_id' => [
+                'nullable',
+                'string',
+                'max:255',
             ],
 
             'transactions.*.description' => [
@@ -44,14 +50,9 @@ class TransactionImportController extends Controller
                 'string',
             ],
 
-            'transactions.*.amount' => [
+            'transactions.*.transaction_date' => [
                 'required',
-                'numeric',
-            ],
-
-            'transactions.*.external_id' => [
-                'nullable',
-                'string',
+                'date',
             ],
         ]);
 
@@ -59,39 +60,19 @@ class TransactionImportController extends Controller
             ->where('household_id', $household->id)
             ->findOrFail($validated['financial_account_id']);
 
+        /*
+     * Freeze the cutoff before checking this batch.
+     */
+        $latestExistingTransactionDate = Transaction::query()
+            ->where('financial_account_id', $account->id)
+            ->max('transaction_date');
+
         $transactions = collect($validated['transactions'])
-            ->map(function (array $transaction) use ($account) {
-
-                /*
-             * QFX:
-             * If the bank supplied a FITID, use that as our
-             * strongest duplicate identifier.
-             */
-                if (! empty($transaction['external_id'])) {
-                    $importHash =
-                        'qfx:' . $transaction['external_id'];
-                } else {
-                    /*
-                 * CSV:
-                 * Build our own repeatable hash.
-                 */
-                    $importHash = hash(
-                        'sha256',
-                        implode('|', [
-                            $account->id,
-                            $transaction['transaction_date'],
-                            trim($transaction['description']),
-                            number_format(
-                                (float) $transaction['amount'],
-                                2,
-                                '.',
-                                ''
-                            ),
-                        ])
-                    );
-                }
-
-                return [
+            ->map(function (array $transaction) use (
+                $account,
+                $latestExistingTransactionDate
+            ) {
+                $normalizedTransaction = [
                     'transaction_date' =>
                     $transaction['transaction_date'],
 
@@ -101,64 +82,26 @@ class TransactionImportController extends Controller
                     'amount' =>
                     (float) $transaction['amount'],
 
-                    'external_id' =>
-                    $transaction['external_id'] ?? null,
-
-                    'import_hash' =>
-                    $importHash,
+                    'bank_record_id' =>
+                    $transaction['bank_record_id'] ?? null,
                 ];
+
+                $normalizedTransaction['is_duplicate'] =
+                    $this->transactionAlreadyExists(
+                        $account,
+                        $normalizedTransaction,
+                        $latestExistingTransactionDate
+                    );
+
+                return $normalizedTransaction;
             });
 
-        $existingHashes = [];
-
-        foreach ($transactions as $transaction) {
-
-            /*
-         * QFX duplicate check
-         */
-            if ($transaction['external_id']) {
-                $exists = Transaction::query()
-                    ->where(
-                        'financial_account_id',
-                        $account->id
-                    )
-                    ->where(
-                        'external_id',
-                        $transaction['external_id']
-                    )
-                    ->exists();
-
-                if ($exists) {
-                    $existingHashes[] =
-                        $transaction['import_hash'];
-                }
-
-                continue;
-            }
-
-            /*
-         * CSV duplicate check
-         */
-            $exists = Transaction::query()
-                ->where(
-                    'financial_account_id',
-                    $account->id
-                )
-                ->where(
-                    'import_hash',
-                    $transaction['import_hash']
-                )
-                ->exists();
-
-            if ($exists) {
-                $existingHashes[] =
-                    $transaction['import_hash'];
-            }
-        }
-
         return response()->json([
-            'transactions' => $transactions->values(),
-            'existing_hashes' => $existingHashes,
+            'transactions' =>
+            $transactions->values(),
+
+            'latest_existing_transaction_date' =>
+            $latestExistingTransactionDate,
         ]);
     }
 
@@ -303,8 +246,8 @@ class TransactionImportController extends Controller
                     'currency' =>
                     $account->currency,
 
-                    'external_id' =>
-                    $transaction['external_id'],
+                    'bank_record_id' =>
+                    $transaction['bank_record_id'],
                 ];
             })
             ->values();
@@ -423,8 +366,10 @@ class TransactionImportController extends Controller
                 'string',
             ],
 
+
+
             /*
-     * Details are entered by the user.
+     * Details can be entered by the user.
      *
      * This is where we record information we want to remember
      * about the transaction or include on a reimbursement.
@@ -450,7 +395,7 @@ class TransactionImportController extends Controller
      * OFX/QFX/QBO transactions normally have an external FITID.
      * CSV transactions often do not, so this is optional.
      */
-            'transactions.*.external_id' => [
+            'transactions.*.bank_record_id' => [
                 'nullable',
                 'string',
             ],
@@ -522,52 +467,27 @@ class TransactionImportController extends Controller
             $account->update($balanceUpdates);
         }
 
+        $latestExistingTransactionDate = Transaction::query()
+            ->where('financial_account_id', $account->id)
+            ->max('transaction_date');
+
         $imported = 0;
         $skipped = 0;
 
         foreach ($validated['transactions'] as $transaction) {
-            $externalId = $transaction['external_id'] ?? null;
+            if (
+                $this->transactionAlreadyExists(
+                    $account,
+                    $transaction,
+                    $latestExistingTransactionDate
+                )
+            ) {
+                $skipped++;
 
-            if ($externalId) {
-                $alreadyExists = Transaction::query()
-                    ->where('financial_account_id', $account->id)
-                    ->where('external_id', $externalId)
-                    ->exists();
-
-                if ($alreadyExists) {
-                    $skipped++;
-
-                    continue;
-                }
-
-                $hash = 'qfx:' . $externalId;
-                $importSource = 'qfx';
-            } else {
-                $hash = hash('sha256', implode('|', [
-                    $account->id,
-                    $transaction['transaction_date'],
-                    number_format(
-                        (float) $transaction['amount'],
-                        2,
-                        '.',
-                        ''
-                    ),
-                    mb_strtolower(trim($transaction['description'])),
-                ]));
-
-                $alreadyExists = Transaction::query()
-                    ->where('financial_account_id', $account->id)
-                    ->where('import_hash', $hash)
-                    ->exists();
-
-                if ($alreadyExists) {
-                    $skipped++;
-
-                    continue;
-                }
-
-                $importSource = 'csv-paste';
+                continue;
             }
+
+            $bankRecordId = $transaction['bank_record_id'] ?? null;
 
             Transaction::create([
                 'household_id' => $household->id,
@@ -589,14 +509,16 @@ class TransactionImportController extends Controller
                 'currency' =>
                 strtoupper($transaction['currency']),
 
-                'external_id' =>
-                $externalId,
+                'bank_record_id' =>
+                $bankRecordId,
 
                 'import_source' =>
-                $importSource,
+                $bankRecordId
+                    ? 'bank-record-id'
+                    : 'csv-paste',
 
                 'import_hash' =>
-                $hash,
+                null,
 
                 'comment' =>
                 null,
@@ -816,9 +738,22 @@ class TransactionImportController extends Controller
         TransactionImportProfile $profile,
         FinancialAccount $account
     ): array {
+
         $transactions = [];
 
         foreach ($rows as $row) {
+            $bankRecordId = null;
+
+            if ($profile->bank_record_id_column) {
+                $bankRecordId = trim(
+                    $row[$profile->bank_record_id_column] ?? ''
+                );
+
+                if ($bankRecordId === '') {
+                    $bankRecordId = null;
+                }
+            }
+
             $date = $row[$profile->date_column] ?? null;
             $description = $row[$profile->description_column] ?? null;
 
@@ -882,31 +817,20 @@ class TransactionImportController extends Controller
                 $parsedDate->format('Y-m-d'),
 
                 // Bank-supplied transaction description.
-                'description' =>
-                trim($description),
+                'description' => trim($description),
 
                 // User-entered information is blank during import.
-                'details' =>
-                '',
-
-                'amount' =>
-                $amount,
-
-                'currency' =>
-                $account->currency,
-
-                'external_id' =>
-                null,
+                'details' => '',
+                'amount' => $amount,
+                'currency' => $account->currency,
+                'bank_record_id' => $bankRecordId,
 
                 // Balance information is kept during normalization so that
                 // the completed import can determine monthly openings,
                 // annual maximums, and year-end balances without depending
                 // on the bank's row order.
-                'ledger_balance' =>
-                $ledgerBalance,
-
-                'available_balance' =>
-                $availableBalance,
+                'ledger_balance' => $ledgerBalance,
+                'available_balance' => $availableBalance,
             ];
         }
 
@@ -983,5 +907,34 @@ class TransactionImportController extends Controller
             'header_signature' => $headerSignature,
             'rows' => $rows,
         ];
+    }
+
+    private function transactionAlreadyExists(
+        FinancialAccount $account,
+        array $transaction,
+        ?string $latestExistingTransactionDate
+    ): bool {
+        $bankRecordId = $transaction['bank_record_id'] ?? null;
+
+        /*
+     * Strongest test:
+     * the bank supplied a unique transaction identifier.
+     */
+        if ($bankRecordId) {
+            return Transaction::query()
+                ->where('financial_account_id', $account->id)
+                ->where('bank_record_id', $bankRecordId)
+                ->exists();
+        }
+
+        /*
+     * No bank record ID.
+     *
+     * Use the transaction-date cutoff that was frozen
+     * before this import began.
+     */
+        return $latestExistingTransactionDate !== null
+            && $transaction['transaction_date']
+            <= $latestExistingTransactionDate;
     }
 }

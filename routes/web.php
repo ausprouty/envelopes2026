@@ -12,6 +12,7 @@ use App\Http\Controllers\ImportProfileController;
 use App\Http\Controllers\IncomeAllocationController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SpendingReportController;
+use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionImportController;
 use Illuminate\Support\Facades\Route;
 
@@ -28,7 +29,7 @@ Route::middleware(['auth', 'admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
-        
+
         Route::get(
             '/households/{household}/balance-adjustments/create',
             [EnvelopeBalanceAdjustmentController::class, 'create']
@@ -318,6 +319,11 @@ Route::middleware([
                     '/transactions/{transaction}/split',
                     [FinancialTransactionController::class, 'split']
                 )->name('transactions.split');
+                
+                Route::post(
+                    '/transactions/{transaction}/transfer',
+                    [TransactionController::class, 'storeTransfer']
+                )->name('transactions.transfer.store');
 
 
                 /*

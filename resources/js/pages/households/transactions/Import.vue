@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ChevronDown, ChevronUp, Upload } from '@lucide/vue';
+import axios from 'axios';
 import { computed, ref, watch } from 'vue';
+
 
 /*
 |--------------------------------------------------------------------------
@@ -14,9 +16,9 @@ type TransactionStatus = 'new' | 'duplicate';
 
 interface DuplicateCheckTransaction {
     amount: number;
-    external_id?: string | null;
-    import_hash: string;
+    bank_record_id: string | null;
     description: string;
+    is_duplicate: boolean;
     transaction_date: string;
 }
 
@@ -36,6 +38,7 @@ interface Household {
 interface ImportProfile {
     amount_column: string | null;
     available_balance_column: string | null;
+    bank_record_id_column: string | null;
     credit_column: string | null;
     date_column: string | null;
     date_format: string | null;
@@ -52,10 +55,12 @@ interface ImportProfile {
 interface PreviewTransaction {
     amount: number;
     available_balance?: number | null;
+    bank_record_id: string | null;
     currency: string;
     description: string;
     details?: string | null;
     external_id?: string | null;
+    financialAccountId?: string | null;
     import_hash?: string;
     ledger_balance?: number | null;
     status?: TransactionStatus;
@@ -81,6 +86,15 @@ const props = defineProps<{
     accounts: FinancialAccount[];
     household: Household;
 }>();
+
+const hasLedgerBalances = computed(() =>
+    preview.value.some(
+        transaction =>
+            transaction.ledger_balance !== null &&
+            transaction.ledger_balance !== undefined &&
+            !Number.isNaN(Number(transaction.ledger_balance))
+    )
+);
 
 /*
 |--------------------------------------------------------------------------
@@ -648,6 +662,9 @@ async function previewCsv(): Promise<void> {
             }
         );
 
+        const bankRecordId =
+            row[profile.bank_record_id_column ?? '']?.trim() || null;
+
         /*
         |------------------------------------------------------------------
         | Date
@@ -761,10 +778,10 @@ async function previewCsv(): Promise<void> {
         transactions.push({
             amount,
             available_balance: availableBalance,
+            bank_record_id: bankRecordId,
             currency: account.currency,
             description,
             details: '',
-            import_hash: '',
             ledger_balance: ledgerBalance,
             status: 'new',
             transaction_date: transactionDate,
@@ -805,18 +822,10 @@ async function checkDuplicates(): Promise<void> {
         return;
     }
 
-    const response = await fetch(
-        `/households/${props.household.id}/transactions/import/check-duplicates`,
-        {
-            method: 'POST',
-
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken(),
-            },
-
-            body: JSON.stringify({
+    try {
+        const response = await axios.post(
+            `/households/${props.household.id}/transactions/import/check-duplicates`,
+            {
                 available_balance:
                     availableBalance.value,
 
@@ -835,8 +844,8 @@ async function checkDuplicates(): Promise<void> {
                             amount:
                                 transaction.amount,
 
-                            external_id:
-                                transaction.external_id ??
+                            bank_record_id:
+                                transaction.bank_record_id ??
                                 null,
 
                             description:
@@ -846,61 +855,44 @@ async function checkDuplicates(): Promise<void> {
                                 transaction.transaction_date,
                         })
                     ),
-            }),
-        }
-    );
-
-    if (!response.ok) {
-        errorMessage.value =
-            'Unable to check for duplicate transactions.';
-
-        return;
-    }
-
-    const data = await response.json();
-
-    const existingHashes =
-        new Set<string>(
-            data.existing_hashes ?? []
+            }
         );
 
-    const checkedTransactions =
-        data.transactions as DuplicateCheckTransaction[];
+        const checkedTransactions =
+            response.data.transactions as DuplicateCheckTransaction[];
 
-    /*
-    |----------------------------------------------------------------------
-    | Add Duplicate Information Without Losing Description/Currency
-    |----------------------------------------------------------------------
-    */
+        preview.value = preview.value.map(
+            (transaction, index) => {
+                const checked =
+                    checkedTransactions[index];
 
-    preview.value = preview.value.map(
-        (transaction, index) => {
-            const checked =
-                checkedTransactions[index];
+                if (!checked) {
+                    return transaction;
+                }
 
-            if (!checked) {
-                return transaction;
+                return {
+                    ...transaction,
+
+                    bank_record_id:
+                        checked.bank_record_id ??
+                        transaction.bank_record_id,
+
+                    status:
+                        checked.is_duplicate
+                            ? 'duplicate'
+                            : 'new',
+                };
             }
+        );
+    } catch (error) {
+        console.error(
+            'Duplicate check failed:',
+            error
+        );
 
-            return {
-                ...transaction,
-
-                external_id:
-                    checked.external_id ??
-                    transaction.external_id,
-
-                import_hash:
-                    checked.import_hash,
-
-                status:
-                    existingHashes.has(
-                        checked.import_hash
-                    )
-                        ? 'duplicate'
-                        : 'new',
-            };
-        }
-    );
+        errorMessage.value =
+            'Unable to check for duplicate transactions.';
+    }
 }
 
 /*
@@ -925,26 +917,16 @@ async function importTransactions(): Promise<void> {
         return;
     }
 
-
-
     /*
     |----------------------------------------------------------------------
     | Store
     |----------------------------------------------------------------------
     */
 
-    const response = await fetch(
-        `/households/${props.household.id}/transactions/import/store`,
-        {
-            method: 'POST',
-
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken(),
-            },
-
-            body: JSON.stringify({
+    try {
+        await axios.post(
+            `/households/${props.household.id}/transactions/import/store`,
+            {
                 available_balance:
                     availableBalance.value,
 
@@ -966,6 +948,9 @@ async function importTransactions(): Promise<void> {
                             available_balance:
                                 transaction.available_balance ?? null,
 
+                            bank_record_id:
+                                transaction.bank_record_id ?? null,
+
                             currency:
                                 transaction.currency,
 
@@ -975,9 +960,6 @@ async function importTransactions(): Promise<void> {
                             details:
                                 transaction.details ?? null,
 
-                            external_id:
-                                transaction.external_id ?? null,
-
                             ledger_balance:
                                 transaction.ledger_balance ?? null,
 
@@ -985,17 +967,16 @@ async function importTransactions(): Promise<void> {
                                 transaction.transaction_date,
                         })
                     ),
-            }),
-        }
-    );
-
-    if (!response.ok) {
-        const errorData = await response.json();
-
-        console.log('Import error:', errorData);
+            }
+        );
+    } catch (error: any) {
+        console.error(
+            'Import error:',
+            error.response?.data ?? error
+        );
 
         errorMessage.value =
-            errorData.message ??
+            error.response?.data?.message ??
             'Unable to import transactions.';
 
         return;
@@ -1334,7 +1315,7 @@ async function importTransactions(): Promise<void> {
                                 Amount
                             </th>
 
-                            <th class="p-3 text-right">
+                            <th v-if="hasLedgerBalances" class="px-4 py-3 text-right">
                                 Ledger Balance
                             </th>
 
@@ -1346,7 +1327,9 @@ async function importTransactions(): Promise<void> {
 
                     <tbody>
                         <tr v-for="(transaction, index) in preview" :key="index"
-                            class="border-b border-gray-300 last:border-b-0">
+                            class="border-b border-gray-300 last:border-b-0" :class="{
+                                'bg-yellow-100': transaction.status === 'duplicate',
+                            }">
                             <td class="whitespace-nowrap p-3">
                                 {{ transaction.transaction_date }}
                             </td>
@@ -1369,17 +1352,20 @@ async function importTransactions(): Promise<void> {
                                     )
                                 }}
                             </td>
-                            <td class="whitespace-nowrap p-3 text-right">
+                            <td
+                             v-if="hasLedgerBalances"
+                             class="whitespace-nowrap p-3 text-right">
                                 {{
-                                    transaction.ledger_balance !== null
+                                    transaction.ledger_balance !== null &&
+                                        transaction.ledger_balance !== undefined &&
+                                        !Number.isNaN(Number(transaction.ledger_balance))
                                         ? new Intl.NumberFormat('en-AU', {
                                             style: 'currency',
-                                            currency:
-                                                transaction.currency || 'AUD',
-                                        }).format(
-                                            Number(transaction.ledger_balance)
-                                        )
-                                        : '—'
+                                            currency: transaction.currency || 'AUD',
+                                }).format(
+                                Number(transaction.ledger_balance)
+                                )
+                                : '—'
                                 }}
                             </td>
 

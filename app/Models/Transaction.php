@@ -9,28 +9,29 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Transaction extends Model
 {
     protected $fillable = [
-        'household_id',
-        'financial_account_id',
+        'amount',
+        'bank_record_id',
         'category_id',
-        'transaction_date',
+        'comment',
+        'currency',
+        'deferred_at',
         'description',
         'details',
-        'amount',
-        'currency',
-        'posted_date',
-        'external_id',
-        'import_source',
+        'financial_account_id',
+        'household_id',
         'import_hash',
-        'comment',
-        'deferred_at',
+        'import_source',
+        'posted_date',
+        'transaction_date',
+        'transfer_transaction_id',
     ];
 
     protected function casts(): array
     {
         return [
-            'transaction_date' => 'date',
-            'posted_date' => 'date',
             'amount' => 'decimal:2',
+            'posted_date' => 'date',
+            'transaction_date' => 'date',
         ];
     }
     public function category(): BelongsTo
@@ -47,8 +48,22 @@ class Transaction extends Model
         return $this->belongsTo(Household::class);
     }
 
+    public function transferTransaction(): BelongsTo
+    {
+        return $this->belongsTo(
+            Transaction::class,
+            'transfer_transaction_id'
+        );
+    }
 
-
+    public function transferredFrom()
+    {
+        return $this->hasOne(
+            Transaction::class,
+            'transfer_transaction_id'
+        );
+    }
+    
     public function splits(): HasMany
     {
         return $this->hasMany(TransactionSplit::class);

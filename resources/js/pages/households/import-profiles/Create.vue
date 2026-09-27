@@ -10,18 +10,19 @@ const props = defineProps<{
 }>();
 
 const form = useForm({
-    name: '',
-    format: 'csv',
-    header_signature: '',
+    amount_column: '',
+    available_balance_column: '',
+    bank_record_id_column: '',
+    credit_column: '',
     date_column: '',
+    date_format: 'm/d/Y',
+    debit_column: '',
     description_column: '',
     description_field: '',
-    amount_column: '',
-    debit_column: '',
-    credit_column: '',
+    format: 'csv',
+    header_signature: '',
     ledger_balance_column: '',
-    available_balance_column: '',
-    date_format: 'm/d/Y',
+    name: '',
 });
 
 const isCsv = computed(
@@ -234,6 +235,19 @@ function submit(): void {
                             Optional. Amount available to spend or borrow.
                         </p>
                     </div>
+                </div>
+                <div>
+                    <label for="bank_record_id_column" class="mb-2 block text-sm font-medium">
+                        Bank Record ID Column
+                    </label>
+
+                    <input id="bank_record_id_column" v-model="form.bank_record_id_column" type="text"
+                        class="w-full rounded-md border border-gray-400 px-3 py-2" placeholder="Transaction ID" />
+
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        The CSV column containing the bank's unique transaction identifier. Leave blank if the bank does
+                        not provide one.
+                    </p>
                 </div>
 
                 <div>

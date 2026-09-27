@@ -38,7 +38,7 @@ class QfxParser
                     )
                 ),
 
-                'external_id' => $this->getTagValue(
+                'bank_record_id' => $this->getTagValue(
                     $transactionBlock,
                     'FITID'
                 ),
