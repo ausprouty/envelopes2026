@@ -16,14 +16,14 @@ return new class extends Migration
                     ->after('balance_date')
                     ->comment(
                         'Purpose of this saved balance snapshot. '
-                        . 'Examples: monthly_opening, annual_maximum, year_end.'
+                        .'Examples: monthly_opening, annual_maximum, year_end.'
                     );
 
                 $table->string('source', 50)
                     ->nullable()
                     ->comment(
                         'How Envelopes obtained the balance. '
-                        . 'Examples: csv_import, ofx_import, statement, manual.'
+                        .'Examples: csv_import, ofx_import, statement, manual.'
                     )
                     ->change();
             }

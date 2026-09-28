@@ -1,11 +1,11 @@
 <?php
 
+use App\Http\Controllers\Admin\EnvelopeBalanceAdjustmentController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\CategoryBalanceReportController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CategoryTransferController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\Admin\EnvelopeBalanceAdjustmentController;
 use App\Http\Controllers\FinancialAccountBalanceHistoryController;
 use App\Http\Controllers\FinancialAccountController;
 use App\Http\Controllers\FinancialTransactionController;
@@ -18,7 +18,6 @@ use App\Http\Controllers\TransactionImportController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
-
 
 /*
 |--------------------------------------------------------------------------
@@ -76,7 +75,6 @@ Route::middleware(['auth', 'admin'])
         )->name('users.household.update');
     });
 
-
 /*
 |--------------------------------------------------------------------------
 | Household routes
@@ -117,7 +115,6 @@ Route::middleware([
             '/reports/spending-by-category',
             [SpendingReportController::class, 'index']
         )->name('reports.spending-by-category');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -164,7 +161,6 @@ Route::middleware([
                     [TransactionImportController::class, 'recentTransactions']
                 )->name('transactions.import.recent');
 
-
                 /*
                 |--------------------------------------------------------------------------
                 | Category routes
@@ -196,7 +192,6 @@ Route::middleware([
                     [CategoryController::class, 'update']
                 )->name('categories.update');
 
-
                 /*
                 |--------------------------------------------------------------------------
                 | Category transfers
@@ -212,7 +207,6 @@ Route::middleware([
                     '/category-transfers',
                     [CategoryTransferController::class, 'store']
                 )->name('category-transfers.store');
-
 
                 /*
                 |--------------------------------------------------------------------------
@@ -234,14 +228,36 @@ Route::middleware([
                 | Financial Account Balance History
                 |--------------------------------------------------------------------------
                 */
+
                 Route::get(
-                    '/financial-accounts/{financialAccount}/balances/create',
+                    '/balances',
+                    [FinancialAccountBalanceHistoryController::class, 'index']
+                )->name('balances.index');
+
+                Route::get(
+                    '/balances/create',
                     [FinancialAccountBalanceHistoryController::class, 'create']
-                )->name('financial-accounts.balances.create');
+                )->name('balances.create');
+
                 Route::post(
-                    '/financial-accounts/{financialAccount}/balances',
+                    '/balances',
                     [FinancialAccountBalanceHistoryController::class, 'store']
-                )->name('financial-accounts.balances.store');
+                )->name('balances.store');
+
+                Route::get(
+                    '/balances/{balanceHistory}/edit',
+                    [FinancialAccountBalanceHistoryController::class, 'edit']
+                )->name('balances.edit');
+
+                Route::put(
+                    '/balances/{balanceHistory}',
+                    [FinancialAccountBalanceHistoryController::class, 'update']
+                )->name('balances.update');
+
+                Route::delete(
+                    '/balances/{balanceHistory}',
+                    [FinancialAccountBalanceHistoryController::class, 'destroy']
+                )->name('balances.destroy');
                 /*
                 |--------------------------------------------------------------------------
                 | Import profiles
@@ -273,7 +289,6 @@ Route::middleware([
                     [ImportProfileController::class, 'update']
                 )->name('import-profiles.update');
 
-
                 /*
                 |--------------------------------------------------------------------------
                 | Income allocations
@@ -294,7 +309,6 @@ Route::middleware([
                     '/income-allocations/defaults',
                     [IncomeAllocationController::class, 'saveDefaults']
                 )->name('income-allocations.defaults.store');
-
 
                 /*
                 |--------------------------------------------------------------------------
@@ -347,7 +361,6 @@ Route::middleware([
                     [TransactionController::class, 'transferMatches']
                 )->name('transactions.transfer-matches');
 
-
                 /*
                 |--------------------------------------------------------------------------
                 | Transaction import routes
@@ -376,4 +389,4 @@ Route::middleware([
             });
     });
 
-require __DIR__ . '/settings.php';
+require __DIR__.'/settings.php';

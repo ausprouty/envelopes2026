@@ -7,8 +7,8 @@ use App\Models\FinancialAccountBalanceHistory;
 use App\Models\Household;
 use App\Models\Transaction;
 use App\Models\TransactionImportProfile;
-use App\Services\TransactionImport\QfxParser;
 use App\Services\TransactionImport\PayeeCleaner;
+use App\Services\TransactionImport\QfxParser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -17,7 +17,6 @@ use Inertia\Response;
 
 class TransactionImportController extends Controller
 {
-
     public function checkDuplicates(
         Request $request,
         Household $household
@@ -63,11 +62,9 @@ class TransactionImportController extends Controller
                 $latestExistingTransactionDate
             ) {
                 $normalizedTransaction = [
-                    'transaction_date' =>
-                    $transaction['transaction_date'],
+                    'transaction_date' => $transaction['transaction_date'],
 
-                    'bank_record_id' =>
-                    $transaction['bank_record_id'] ?? null,
+                    'bank_record_id' => $transaction['bank_record_id'] ?? null,
                 ];
 
                 $normalizedTransaction['is_duplicate'] =
@@ -81,11 +78,9 @@ class TransactionImportController extends Controller
             });
 
         return response()->json([
-            'transactions' =>
-            $transactions->values(),
+            'transactions' => $transactions->values(),
 
-            'latest_existing_transaction_date' =>
-            $latestExistingTransactionDate,
+            'latest_existing_transaction_date' => $latestExistingTransactionDate,
         ]);
     }
 
@@ -118,13 +113,12 @@ class TransactionImportController extends Controller
         Household $household
     ): Response {
 
-
         $validated = $request->validate([
             'financial_account_id' => [
                 'required',
                 Rule::exists('financial_accounts', 'id')
                     ->where(
-                        fn($query) => $query->where(
+                        fn ($query) => $query->where(
                             'household_id',
                             $household->id
                         )
@@ -215,25 +209,19 @@ class TransactionImportController extends Controller
                 $descriptionCleaner
             ) {
                 return [
-                    'transaction_date' =>
-                    $transaction['transaction_date'],
+                    'transaction_date' => $transaction['transaction_date'],
 
-                    'description' =>
-                    $descriptionCleaner->cleanWestpac(
+                    'description' => $descriptionCleaner->cleanWestpac(
                         $transaction['description'] ?? ''
                     ),
 
-                    'amount' =>
-                    $transaction['amount'],
+                    'amount' => $transaction['amount'],
 
-                    'currency' =>
-                    $account->currency,
+                    'currency' => $account->currency,
 
-                    'ledger_balance' =>
-                    $transaction['ledger_balance'] ?? null,
+                    'ledger_balance' => $transaction['ledger_balance'] ?? null,
 
-                    'bank_record_id' =>
-                    $transaction['bank_record_id'] ?? null,
+                    'bank_record_id' => $transaction['bank_record_id'] ?? null,
                 ];
             })
             ->values();
@@ -352,8 +340,6 @@ class TransactionImportController extends Controller
                 'string',
             ],
 
-
-
             /*
      * Details can be entered by the user.
      *
@@ -421,8 +407,6 @@ class TransactionImportController extends Controller
             ],
         ]);
 
-
-
         $account = FinancialAccount::query()
             ->where('household_id', $household->id)
             ->findOrFail($validated['financial_account_id']);
@@ -480,34 +464,25 @@ class TransactionImportController extends Controller
                 'financial_account_id' => $account->id,
                 'category_id' => null,
 
-                'transaction_date' =>
-                $transaction['transaction_date'],
+                'transaction_date' => $transaction['transaction_date'],
 
-                'posted_date' =>
-                $transaction['transaction_date'],
+                'posted_date' => $transaction['transaction_date'],
 
-                'description' =>
-                trim($transaction['description']),
+                'description' => trim($transaction['description']),
 
-                'amount' =>
-                $transaction['amount'],
+                'amount' => $transaction['amount'],
 
-                'currency' =>
-                strtoupper($transaction['currency']),
+                'currency' => strtoupper($transaction['currency']),
 
-                'bank_record_id' =>
-                $bankRecordId,
+                'bank_record_id' => $bankRecordId,
 
-                'import_source' =>
-                $bankRecordId
+                'import_source' => $bankRecordId
                     ? 'bank-record-id'
                     : 'csv-paste',
 
-                'import_hash' =>
-                null,
+                'import_hash' => null,
 
-                'comment' =>
-                null,
+                'comment' => null,
             ]);
 
             $imported++;
@@ -527,8 +502,7 @@ class TransactionImportController extends Controller
     ): void {
         $transactionsWithBalances = collect($transactions)
             ->filter(
-                fn(array $transaction) =>
-                ! empty($transaction['transaction_date'])
+                fn (array $transaction) => ! empty($transaction['transaction_date'])
                     && (
                         ($transaction['ledger_balance'] ?? null) !== null
                         || ($transaction['available_balance'] ?? null) !== null
@@ -552,12 +526,10 @@ class TransactionImportController extends Controller
      */
         $monthlyBalances = $transactionsWithBalances
             ->groupBy(
-                fn(array $transaction) =>
-                substr($transaction['transaction_date'], 0, 7)
+                fn (array $transaction) => substr($transaction['transaction_date'], 0, 7)
             )
             ->map(
-                fn($monthTransactions) =>
-                $monthTransactions
+                fn ($monthTransactions) => $monthTransactions
                     ->sortByDesc('transaction_date')
                     ->first()
             );
@@ -579,15 +551,13 @@ class TransactionImportController extends Controller
      */
         $annualMaximums = $transactionsWithBalances
             ->filter(
-                fn(array $transaction) => ($transaction['ledger_balance'] ?? null) !== null
+                fn (array $transaction) => ($transaction['ledger_balance'] ?? null) !== null
             )
             ->groupBy(
-                fn(array $transaction) =>
-                substr($transaction['transaction_date'], 0, 4)
+                fn (array $transaction) => substr($transaction['transaction_date'], 0, 4)
             )
             ->map(
-                fn($yearTransactions) =>
-                $yearTransactions
+                fn ($yearTransactions) => $yearTransactions
                     ->sortByDesc('ledger_balance')
                     ->first()
             );
@@ -633,20 +603,15 @@ class TransactionImportController extends Controller
         FinancialAccountBalanceHistory::create([
             'financial_account_id' => $account->id,
 
-            'ledger_balance' =>
-            $transaction['ledger_balance'] ?? null,
+            'ledger_balance' => $transaction['ledger_balance'] ?? null,
 
-            'available_balance' =>
-            $transaction['available_balance'] ?? null,
+            'available_balance' => $transaction['available_balance'] ?? null,
 
-            'balance_date' =>
-            $date,
+            'balance_date' => $date,
 
-            'balance_type' =>
-            'month_end_observed',
+            'balance_type' => 'month_end_observed',
 
-            'source' =>
-            'csv_import',
+            'source' => 'csv_import',
         ]);
     }
 
@@ -691,20 +656,15 @@ class TransactionImportController extends Controller
         FinancialAccountBalanceHistory::create([
             'financial_account_id' => $account->id,
 
-            'ledger_balance' =>
-            $newBalance,
+            'ledger_balance' => $newBalance,
 
-            'available_balance' =>
-            $transaction['available_balance'] ?? null,
+            'available_balance' => $transaction['available_balance'] ?? null,
 
-            'balance_date' =>
-            $date,
+            'balance_date' => $date,
 
-            'balance_type' =>
-            'annual_maximum',
+            'balance_type' => 'annual_maximum',
 
-            'source' =>
-            'csv_import',
+            'source' => 'csv_import',
         ]);
     }
 
@@ -802,8 +762,7 @@ class TransactionImportController extends Controller
             }
 
             $transactions[] = [
-                'transaction_date' =>
-                $parsedDate->format('Y-m-d'),
+                'transaction_date' => $parsedDate->format('Y-m-d'),
 
                 // Bank-supplied transaction description.
                 'description' => trim($description),
@@ -849,7 +808,7 @@ class TransactionImportController extends Controller
 
         $lines = array_values(array_filter(
             $lines,
-            fn($line) => trim($line) !== ''
+            fn ($line) => trim($line) !== ''
         ));
 
         if (count($lines) < 2) {
@@ -864,7 +823,7 @@ class TransactionImportController extends Controller
         // Remove blank trailing columns.
         $headers = array_values(array_filter(
             array_map('trim', $headers),
-            fn($header) => $header !== ''
+            fn ($header) => $header !== ''
         ));
 
         $headerSignature = implode('|', $headers);

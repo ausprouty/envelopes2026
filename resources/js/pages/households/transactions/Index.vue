@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import { Upload, Tag, DollarSign } from '@lucide/vue';
+import { route } from 'ziggy-js';
 
 
 defineProps<{
@@ -84,19 +85,19 @@ function formatDate(date: string | null) {
             </div>
 
             <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                <Link :href="`/households/${household.id}/transactions/import`"
+                <Link :href="route('households.transactions.import', { household: household.id })"
                     class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#477b67] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#3c6958]">
                     <Upload class="h-4 w-4" />
                     Import
                 </Link>
 
-                <Link :href="`/households/${household.id}/transactions/assign`"
+                <Link :href="route('households.transactions.assign', { household: household.id })"
                     class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#477b67] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#3c6958]">
                     <Tag class="h-4 w-4" />
                     Assign Transactions
                 </Link>
 
-                <Link :href="`/households/${household.id}/transactions/allocate`"
+                <Link :href="route('households.transactions.allocate', { household: household.id })"
                     class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#477b67] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#3c6958]">
                     <DollarSign class="h-4 w-4" />Allocate Income
                 </Link>

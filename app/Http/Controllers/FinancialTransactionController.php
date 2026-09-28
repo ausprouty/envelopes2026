@@ -7,9 +7,9 @@ use App\Models\FinancialAccount;
 use App\Models\Household;
 use App\Models\Transaction;
 use App\Models\TransactionCategoryRule;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -18,7 +18,6 @@ use Inertia\Response;
 
 class FinancialTransactionController extends Controller
 {
-
     public function assign(
         Request $request,
         Household $household
@@ -39,15 +38,15 @@ class FinancialTransactionController extends Controller
                 ->whereDoesntHave('splits')
                 ->when(
                     $showDeferred,
-                    fn($query) => $query->whereNotNull('deferred_at'),
-                    fn($query) => $query->whereNull('deferred_at')
+                    fn ($query) => $query->whereNotNull('deferred_at'),
+                    fn ($query) => $query->whereNull('deferred_at')
                 )
                 ->when(
                     $showDeferred,
-                    fn($query) => $query
+                    fn ($query) => $query
                         ->orderBy('deferred_at')
                         ->orderBy('id'),
-                    fn($query) => $query
+                    fn ($query) => $query
                         ->orderBy('transaction_date')
                         ->orderBy('id')
                 )
@@ -172,7 +171,6 @@ class FinancialTransactionController extends Controller
         // We'll use the same household authorization pattern
         // as the accounts controller.
 
-
         $transactions = Transaction::query()
             ->where('household_id', $household->id)
             ->with([
@@ -231,7 +229,7 @@ class FinancialTransactionController extends Controller
         ]);
 
         $splitTotal = collect($validated['splits'])
-            ->sum(fn($split) => (float) $split['amount']);
+            ->sum(fn ($split) => (float) $split['amount']);
 
         $transactionAmount = abs((float) $transaction->amount);
 
@@ -366,24 +364,18 @@ class FinancialTransactionController extends Controller
             'financial_account_id' => $cashAccount->id,
             'category_id' => $category->id,
 
-            'transaction_date' =>
-            $validated['transaction_date'],
+            'transaction_date' => $validated['transaction_date'],
 
-            'description' =>
-            $validated['description'] ?? null,
+            'description' => $validated['description'] ?? null,
 
-            'details' =>
-            $validated['details'] ?? null,
+            'details' => $validated['details'] ?? null,
 
             // Spending cash is an outgoing transaction.
-            'amount' =>
-            -abs((float) $validated['amount']),
+            'amount' => -abs((float) $validated['amount']),
 
-            'currency' =>
-            $cashAccount->currency,
+            'currency' => $cashAccount->currency,
 
-            'gst_amount' =>
-            $validated['gst_amount'] ?? null,
+            'gst_amount' => $validated['gst_amount'] ?? null,
         ]);
 
         return back();
@@ -409,7 +401,7 @@ class FinancialTransactionController extends Controller
                 'required',
                 Rule::exists('categories', 'id')
                     ->where(
-                        fn($query) => $query->where(
+                        fn ($query) => $query->where(
                             'household_id',
                             $household->id
                         )
@@ -429,7 +421,7 @@ class FinancialTransactionController extends Controller
                 'nullable',
                 'numeric',
                 'min:0',
-                'lte:' . abs((float) $transaction->amount),
+                'lte:'.abs((float) $transaction->amount),
             ],
 
             'match_text' => [

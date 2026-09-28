@@ -30,7 +30,7 @@ class MinistryCategorySeeder extends Seeder
                     'name' => 'Training',
                 ],
                 'children' => [
-                    ['code' => 'H6-7115', 'name' => 'Training and Development','gst_default' => false],
+                    ['code' => 'H6-7115', 'name' => 'Training and Development', 'gst_default' => false],
                     ['code' => 'H6-7116', 'name' => 'PTC Conferences', 'gst_default' => false],
                     ['code' => 'H6-7155', 'name' => "Leader's Retreat / Orientation", 'gst_default' => false],
                 ],
@@ -82,7 +82,7 @@ class MinistryCategorySeeder extends Seeder
                     ['code' => 'H6-7510', 'name' => 'Phone / Fax Charges'],
                     ['code' => 'H6-7512', 'name' => 'Mobile Call Charges'],
                     ['code' => 'H6-7515', 'name' => 'Internet Charges'],
-                    ['code' => 'H6-7520', 'name' => 'Postage and Freight','gst_default' => false],
+                    ['code' => 'H6-7520', 'name' => 'Postage and Freight', 'gst_default' => false],
                 ],
             ],
 
@@ -104,7 +104,7 @@ class MinistryCategorySeeder extends Seeder
                     'name' => 'Facility',
                 ],
                 'children' => [
-                    ['code' => 'H6-7810', 'name' => 'Rent','gst_default' => false],
+                    ['code' => 'H6-7810', 'name' => 'Rent', 'gst_default' => false],
                     ['code' => 'H6-7820', 'name' => 'Utilities'],
                     ['code' => 'H6-7830', 'name' => 'General Insurance'],
                     ['code' => 'H6-7850', 'name' => 'Other Facility Expenses'],
@@ -119,14 +119,14 @@ class MinistryCategorySeeder extends Seeder
                 ],
                 'children' => [
 
-                    ['code' => 'H6-7930', 'name' => 'Professional Fees','gst_default' => false],
+                    ['code' => 'H6-7930', 'name' => 'Professional Fees', 'gst_default' => false],
                     ['code' => 'H6-7940', 'name' => 'Bank Fees', 'gst_default' => false],
                     ['code' => 'H6-7950', 'name' => 'General Donations - Third Parties', 'gst_default' => false],
-                    ['code' => 'H6-7960', 'name' => 'Non-Financial Gifts (Outreach)' ,'gst_default' => false],
-                    ['code' => 'H6-7970', 'name' => 'Miscellaneous Expense','gst_default' => false],
-                    ['code' => 'H6-7990', 'name' => 'Other Miscellaneous Expenses','gst_default' => false],
+                    ['code' => 'H6-7960', 'name' => 'Non-Financial Gifts (Outreach)', 'gst_default' => false],
+                    ['code' => 'H6-7970', 'name' => 'Miscellaneous Expense', 'gst_default' => false],
+                    ['code' => 'H6-7990', 'name' => 'Other Miscellaneous Expenses', 'gst_default' => false],
                 ],
-            ]
+            ],
         ];
 
         $displayOrder = 10;

@@ -6,7 +6,6 @@ use App\Models\Category;
 use App\Models\Household;
 use App\Models\IncomeAllocation;
 use App\Models\IncomeAllocationDefault;
-use App\Models\IncomeAllocationLine;
 use App\Models\Transaction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,9 +38,9 @@ class IncomeAllocationController extends Controller
                 $default = $isHeading
                     ? null
                     : IncomeAllocationDefault::query()
-                    ->where('household_id', $household->id)
-                    ->where('category_id', $category->id)
-                    ->first();
+                        ->where('household_id', $household->id)
+                        ->where('category_id', $category->id)
+                        ->first();
 
                 return [
                     'id' => $category->id,
@@ -120,7 +119,7 @@ class IncomeAllocationController extends Controller
      */
         $allocatedTotal = collect($validated['lines'])
             ->sum(
-                fn($line) => (float) $line['amount']
+                fn ($line) => (float) $line['amount']
             );
 
         if ($allocatedTotal <= 0) {
@@ -192,7 +191,7 @@ class IncomeAllocationController extends Controller
                 $allocation->lines()->create([
                     'category_id' => $category->id,
                     'amount' => $line['amount'],
-                    'balance_before' =>  $balanceBefore
+                    'balance_before' => $balanceBefore,
                 ]);
                 $category->increment(
                     'current_balance',

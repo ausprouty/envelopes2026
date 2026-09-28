@@ -188,10 +188,10 @@ class DashboardController extends Controller
             ->get()
             ->map(function (CategoryTransfer $transfer) {
                 return [
-                    'id' => 'transfer-out-' . $transfer->id,
+                    'id' => 'transfer-out-'.$transfer->id,
                     'type' => 'transfer',
                     'date' => $transfer->transfer_date->toDateString(),
-                    'payee' => 'Transfer to ' . $transfer->toCategory->name,
+                    'payee' => 'Transfer to '.$transfer->toCategory->name,
                     'description' => $transfer->description,
                     'amount' => -(float) $transfer->amount,
                 ];
@@ -204,10 +204,10 @@ class DashboardController extends Controller
             ->get()
             ->map(function (CategoryTransfer $transfer) {
                 return [
-                    'id' => 'transfer-in-' . $transfer->id,
+                    'id' => 'transfer-in-'.$transfer->id,
                     'type' => 'transfer',
                     'date' => $transfer->transfer_date->toDateString(),
-                    'payee' => 'Transfer from ' . $transfer->fromCategory->name,
+                    'payee' => 'Transfer from '.$transfer->fromCategory->name,
                     'description' => $transfer->description,
                     'amount' => (float) $transfer->amount,
                 ];
@@ -219,7 +219,7 @@ class DashboardController extends Controller
             ->get()
             ->map(function (Transaction $transaction) {
                 return [
-                    'id' => 'transaction-' . $transaction->id,
+                    'id' => 'transaction-'.$transaction->id,
                     'type' => 'transaction',
                     'date' => $transaction->transaction_date->toDateString(),
                     'payee' => $transaction->payee,

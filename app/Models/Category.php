@@ -54,10 +54,12 @@ class Category extends Model
             'parent_category_id'
         );
     }
+
     public function incomeAllocationLines(): HasMany
     {
         return $this->hasMany(IncomeAllocationLine::class);
     }
+
     public function incomeAllocationDefault(): HasOne
     {
         return $this->hasOne(IncomeAllocationDefault::class);

@@ -3,6 +3,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { Check, Tag } from '@lucide/vue';
 import axios from 'axios';
 import { computed, ref, watch } from 'vue';
+import { route } from 'ziggy-js';
 import ExpenseTypeButtons from '@/components/ExpenseTypeButtons.vue';
 
 
@@ -209,7 +210,10 @@ async function loadTransferMatches(
     transferTransactionId.value = transactionId;
     selectedTransferMatchId.value = null;
     const response = await axios.get(
-        `/households/${props.household.id}/transactions/${transactionId}/transfer-matches`
+        route('households.transactions.transfer-matches', {
+            household: props.household.id,
+            transaction: transactionId,
+        }),
     );
 
     transferMatches.value = response.data.matches ?? [];
@@ -225,7 +229,10 @@ function linkTransfer(): void {
     }
 
     router.post(
-        `/households/${props.household.id}/transactions/${transferTransactionId.value}/link-transfer`,
+        route('households.transactions.link-transfer', {
+            household: props.household.id,
+            transaction: transferTransactionId.value,
+        }),
         {
             matching_transaction_id:
                 selectedTransferMatchId.value,
@@ -396,7 +403,7 @@ function saveCashTransaction() {
     savingCash.value = true;
 
     router.post(
-        `/households/${props.household.id}/transactions/cash`,
+        route('households.transactions.cash', { household: props.household.id }),
         {
             transaction_date: cashDate.value,
             amount: cashAmount.value,
@@ -440,7 +447,10 @@ function doLater() {
     }
 
     router.post(
-        `/households/${props.household.id}/transactions/${props.transaction.id}/defer`,
+        route('households.transactions.defer', {
+            household: props.household.id,
+            transaction: props.transaction.id,
+        }),
     );
 }
 
@@ -452,7 +462,10 @@ function saveAndNext() {
     saving.value = true;
 
     router.put(
-        `/households/${props.household.id}/transactions/${props.transaction.id}/category`,
+        route('households.transactions.update-category', {
+            household: props.household.id,
+            transaction: props.transaction.id,
+        }),
         {
             always: always.value,
             category_id: categoryId.value,
@@ -517,7 +530,10 @@ function saveSplit() {
     }
 
     router.post(
-        `/households/${props.household.id}/transactions/${props.transaction.id}/split`,
+        route('households.transactions.split', {
+            household: props.household.id,
+            transaction: props.transaction.id,
+        }),
         {
             splits: splitRows.value,
         },
@@ -992,7 +1008,7 @@ function saveSplit() {
                     These transactions were marked Do Later.
                 </p>
 
-                <Link :href="`/households/${household.id}/transactions/assign?deferred=1`"
+                <Link :href="route('households.transactions.assign', { household: household.id, deferred: 1 })"
                     class="mt-5 inline-flex rounded-md bg-[#477b67] px-5 py-2.5 font-medium text-white shadow-sm hover:bg-[#3d6b59]">
                     Work on Deferred Transactions
                 </Link>

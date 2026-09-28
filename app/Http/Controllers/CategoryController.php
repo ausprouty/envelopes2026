@@ -17,7 +17,6 @@ class CategoryController extends Controller
         Household $household
     ): Response {
 
-
         return Inertia::render('households/categories/Index', [
             'household' => $household,
             'categories' => Category::query()
@@ -33,7 +32,6 @@ class CategoryController extends Controller
         Household $household
     ): Response {
 
-
         return Inertia::render('households/categories/Edit', [
             'household' => $household,
             'category' => null,
@@ -45,7 +43,6 @@ class CategoryController extends Controller
         Request $request,
         Household $household
     ): RedirectResponse {
-
 
         $validated = $this->validateCategory($request, $household);
 
@@ -163,6 +160,4 @@ class CategoryController extends Controller
             404
         );
     }
-
-
 }

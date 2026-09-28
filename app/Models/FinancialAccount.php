@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class FinancialAccount extends Model
 {
@@ -58,6 +59,13 @@ class FinancialAccount extends Model
             TransactionImportProfile::class,
             'financial_account_import_profile'
         );
+    }
+
+    public function latestBalanceHistory(): HasOne
+    {
+        return $this->hasOne(FinancialAccountBalanceHistory::class)
+            ->where('balance_type', 'balance_snapshot')
+            ->latestOfMany('balance_date');
     }
 
     public function transactions(): HasMany

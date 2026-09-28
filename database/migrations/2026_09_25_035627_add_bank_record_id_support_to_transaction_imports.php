@@ -14,7 +14,7 @@ return new class extends Migration
                 ->after('description_column')
                 ->comment(
                     'For CSV imports: column containing the bank-supplied unique transaction identifier. '
-                    . 'If NULL, duplicate prevention falls back to the latest transaction date.'
+                    .'If NULL, duplicate prevention falls back to the latest transaction date.'
                 );
         });
 

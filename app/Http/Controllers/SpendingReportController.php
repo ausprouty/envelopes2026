@@ -139,7 +139,7 @@ class SpendingReportController extends Controller
             $yearTotal = collect($months)->sum('actual');
 
             $monthsWithData = collect($months)
-                ->filter(fn($item) => $item['actual'] != 0)
+                ->filter(fn ($item) => $item['actual'] != 0)
                 ->count();
 
             $average = $monthsWithData > 0

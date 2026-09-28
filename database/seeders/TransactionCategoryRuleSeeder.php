@@ -135,7 +135,7 @@ class TransactionCategoryRuleSeeder extends Seeder
             if (! $category) {
                 throw new RuntimeException(
                     "Category not found: {$rule['category_name']} "
-                    . "(legacy account {$rule['legacy_account_id']})"
+                    ."(legacy account {$rule['legacy_account_id']})"
                 );
             }
 

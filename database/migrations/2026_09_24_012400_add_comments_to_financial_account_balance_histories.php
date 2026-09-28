@@ -15,7 +15,7 @@ return new class extends Migration
                     ->nullable()
                     ->comment(
                         'Ledger balance reported by the bank for the '
-                        . 'transaction/date represented by balance_date.'
+                        .'transaction/date represented by balance_date.'
                     )
                     ->change();
 
@@ -29,8 +29,8 @@ return new class extends Migration
                 $table->date('balance_date')
                     ->comment(
                         'Date associated with this balance snapshot. '
-                        . 'For imported transaction history, Envelopes keeps '
-                        . 'the earliest available balance for each month.'
+                        .'For imported transaction history, Envelopes keeps '
+                        .'the earliest available balance for each month.'
                     )
                     ->change();
 
@@ -38,7 +38,7 @@ return new class extends Migration
                     ->nullable()
                     ->comment(
                         'How the balance was obtained, for example '
-                        . 'csv_import, ofx_import, or manual.'
+                        .'csv_import, ofx_import, or manual.'
                     )
                     ->change();
             }

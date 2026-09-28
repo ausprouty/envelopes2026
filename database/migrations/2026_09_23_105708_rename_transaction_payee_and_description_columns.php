@@ -18,7 +18,6 @@ return new class extends Migration
             $table->renameColumn('payee', 'description');
         });
 
-        
     }
 
     public function down(): void

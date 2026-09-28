@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 
 
 const props = defineProps<{
@@ -72,11 +73,16 @@ const form = useForm({
 function submit() {
     if (props.account) {
         form.put(
-            `/households/${props.household.id}/accounts/${props.account.id}`,
+            route('households.accounts.update', {
+                household: props.household.id,
+                financialAccount: props.account.id,
+            }),
         );
     } else {
         form.post(
-            `/households/${props.household.id}/accounts`,
+            route('households.accounts.store', {
+                household: props.household.id,
+            }),
         );
     }
 }
@@ -89,7 +95,7 @@ function submit() {
     <div class="min-h-screen bg-gray-50">
         <div class="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
             <div class="mb-6">
-                <Link :href="`/households/${household.id}/accounts`"
+                <Link :href="route('households.accounts.index', { household: household.id })"
                     class="text-sm font-medium text-[#477b67] hover:underline">
                     ← Back to accounts
                 </Link>
@@ -307,7 +313,7 @@ function submit() {
                 </div>
 
                 <div class="mt-8 flex items-center justify-end gap-3 border-t border-gray-200 pt-6">
-                    <Link :href="`/households/${household.id}/accounts`"
+                    <Link :href="route('households.accounts.index', { household: household.id })"
                         class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
                         Cancel
                     </Link>

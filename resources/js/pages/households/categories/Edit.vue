@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import { route } from 'ziggy-js';
 import { categoryIconOptions } from '@/lib/categoryIcons';
 import { categoryImages } from '@/lib/categoryImages';
+
 
 
 type Household = {
@@ -57,10 +59,17 @@ const form = useForm({
 const submit = () => {
     if (isEditing.value && props.category) {
         form.put(
-            `/households/${props.household.id}/categories/${props.category.id}`,
+            route('households.categories.update', {
+                household: props.household.id,
+                category: props.category.id,
+            }),
         );
     } else {
-        form.post(`/households/${props.household.id}/categories`);
+        form.post(
+            route('households.categories.store', {
+                household: props.household.id,
+            })
+        );
     }
 };
 </script>
@@ -71,7 +80,7 @@ const submit = () => {
 
     <div class="mx-auto max-w-3xl p-6">
         <div class="mb-6">
-            <Link :href="`/households/${household.id}/categories`"
+            <Link :href="route('households.categories.index', { household: household.id })  "
                 class="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
                 ← Back to Categories
             </Link>
@@ -292,7 +301,7 @@ const submit = () => {
 
                 <!-- Buttons -->
                 <div class="flex items-center justify-end gap-3 border-t border-gray-200 pt-6 dark:border-gray-700">
-                    <Link :href="`/households/${household.id}/categories`"
+                    <Link :href="route('households.categories.index', { household: household.id })"
                         class="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800">
                         Cancel
                     </Link>

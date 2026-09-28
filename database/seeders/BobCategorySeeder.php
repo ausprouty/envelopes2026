@@ -35,7 +35,7 @@ class BobCategorySeeder extends Seeder
             [
                 'code' => 'P8-200',
                 'name' => 'CHRIS',
-                'display_order' => 2000 ,
+                'display_order' => 2000,
                 'dashboard_image' => 'personal.png',
             ],
             [
@@ -517,8 +517,7 @@ class BobCategorySeeder extends Seeder
 
                         // Keeps children alphabetized underneath
                         // their heading.
-                        'display_order' =>
-                            $heading['display_order'] + (($index + 1) * 10),
+                        'display_order' => $heading['display_order'] + (($index + 1) * 10),
 
                         'needs_attention' => false,
                         'dashboard_image' => $item['dashboard_image'] ?? null,

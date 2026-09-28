@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import { route } from 'ziggy-js';
 import { categoryColors } from '@/lib/categoryColors';
 
 type Household = {
@@ -117,7 +118,7 @@ const money = (value: number | string | null) =>
 
 const saveNormal = () => {
     form.post(
-        `/households/${props.household.id}/income-allocations/defaults`,
+        route('households.income-allocations.defaults.store', { household: props.household.id }),
         {
             preserveScroll: true,
         },
@@ -126,7 +127,7 @@ const saveNormal = () => {
 
 const submit = () => {
     form.post(
-        `/households/${props.household.id}/income-allocations`,
+        route('households.income-allocations.store', { household: props.household.id }),
     );
 };
 </script>

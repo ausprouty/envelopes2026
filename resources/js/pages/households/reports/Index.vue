@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 
 defineProps<{
     household: {
@@ -26,7 +27,7 @@ defineProps<{
             </div>
 
             <div class="grid gap-4">
-                <Link :href="`/households/${household.id}/reports/spending-by-category`"
+                <Link :href="route('households.reports.spending-by-category', { household: props.household.id })"
                     class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-[#477b67] hover:shadow-md">
                     <div class="flex items-center justify-between gap-4">
                         <div>
@@ -45,7 +46,8 @@ defineProps<{
                     </div>
                 </Link>
 
-                <Link :href="`/households/${household.id}/reports/category-balances`"
+                <Link :href="route('households.reports.category-balances',
+                { household: props.household.id })"
                     class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-[#477b67] hover:shadow-md">
                     <div class="flex items-center justify-between gap-4">
                         <div>
@@ -64,7 +66,7 @@ defineProps<{
                     </div>
                 </Link>
 
-                <Link :href="`/households/${household.id}/reports/income-expenses`"
+                <Link :href="route('households.reports.income-expenses', { household: props.household.id })"
                     class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-[#477b67] hover:shadow-md">
                     <div class="flex items-center justify-between gap-4">
                         <div>
@@ -83,7 +85,7 @@ defineProps<{
                     </div>
                 </Link>
 
-                <Link :href="`/households/${household.id}/reports/account-balances`"
+                <Link :href="route('households.reports.account-balances', { household: props.household.id })"
                     class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-[#477b67] hover:shadow-md">
                     <div class="flex items-center justify-between gap-4">
                         <div>

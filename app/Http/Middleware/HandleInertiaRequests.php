@@ -43,12 +43,12 @@ class HandleInertiaRequests extends Middleware
 
             'adminHouseholds' => $user?->role === 'admin'
                 ? Household::query()
-                ->where('is_active', true)
-                ->orderBy('household_name')
-                ->get([
-                    'id',
-                    'household_name',
-                ])
+                    ->where('is_active', true)
+                    ->orderBy('household_name')
+                    ->get([
+                        'id',
+                        'household_name',
+                    ])
                 : [],
 
             'auth' => [
@@ -59,8 +59,7 @@ class HandleInertiaRequests extends Middleware
 
             'name' => config('app.name'),
 
-            'sidebarOpen' =>
-            ! $request->hasCookie('sidebar_state')
+            'sidebarOpen' => ! $request->hasCookie('sidebar_state')
                 || $request->cookie('sidebar_state') === 'true',
         ];
     }

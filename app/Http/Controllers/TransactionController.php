@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\DB;
 
 class TransactionController extends Controller
 {
-
     public function linkTransfer(
         Request $request,
         Household $household,
@@ -43,8 +42,7 @@ class TransactionController extends Controller
             === $transaction->financial_account_id
         ) {
             return back()->withErrors([
-                'matching_transaction_id' =>
-                'The matching transaction must be from another account.',
+                'matching_transaction_id' => 'The matching transaction must be from another account.',
             ]);
         }
 
@@ -53,8 +51,7 @@ class TransactionController extends Controller
             || $matchingTransaction->transfer_transaction_id !== null
         ) {
             return back()->withErrors([
-                'matching_transaction_id' =>
-                'One of these transactions is already linked to a transfer.',
+                'matching_transaction_id' => 'One of these transactions is already linked to a transfer.',
             ]);
         }
 
@@ -63,8 +60,7 @@ class TransactionController extends Controller
             || ($transaction->amount > 0 && $matchingTransaction->amount > 0)
         ) {
             return back()->withErrors([
-                'matching_transaction_id' =>
-                'Transfer transactions must have opposite signs.',
+                'matching_transaction_id' => 'Transfer transactions must have opposite signs.',
             ]);
         }
 
@@ -74,14 +70,12 @@ class TransactionController extends Controller
         ) {
             $transaction->update([
                 'category_id' => null,
-                'transfer_transaction_id' =>
-                $matchingTransaction->id,
+                'transfer_transaction_id' => $matchingTransaction->id,
             ]);
 
             $matchingTransaction->update([
                 'category_id' => null,
-                'transfer_transaction_id' =>
-                $transaction->id,
+                'transfer_transaction_id' => $transaction->id,
             ]);
         });
 
@@ -117,15 +111,13 @@ class TransactionController extends Controller
             === $transaction->financial_account_id
         ) {
             return back()->withErrors([
-                'destination_financial_account_id' =>
-                'The destination account must be different from the source account.',
+                'destination_financial_account_id' => 'The destination account must be different from the source account.',
             ]);
         }
 
         if ($transaction->transfer_transaction_id !== null) {
             return back()->withErrors([
-                'transfer' =>
-                'This transaction is already linked to a transfer.',
+                'transfer' => 'This transaction is already linked to a transfer.',
             ]);
         }
 
@@ -135,57 +127,41 @@ class TransactionController extends Controller
             $destinationAccount
         ) {
             $matchingTransaction = Transaction::create([
-                'amount' =>
-                -1 * $transaction->amount,
+                'amount' => -1 * $transaction->amount,
 
-                'category_id' =>
-                null,
+                'category_id' => null,
 
-                'comment' =>
-                null,
+                'comment' => null,
 
-                'currency' =>
-                $destinationAccount->currency,
+                'currency' => $destinationAccount->currency,
 
-                'deferred_at' =>
-                null,
+                'deferred_at' => null,
 
-                'description' =>
-                'Transfer from '
-                    . $transaction->financialAccount->account_name,
+                'description' => 'Transfer from '
+                    .$transaction->financialAccount->account_name,
 
-                'details' =>
-                null,
+                'details' => null,
 
-                'financial_account_id' =>
-                $destinationAccount->id,
+                'financial_account_id' => $destinationAccount->id,
 
-                'household_id' =>
-                $household->id,
+                'household_id' => $household->id,
 
-                'import_hash' =>
-                null,
+                'import_hash' => null,
 
-                'import_source' =>
-                'transfer',
+                'import_source' => 'transfer',
 
-                'posted_date' =>
-                $transaction->posted_date
+                'posted_date' => $transaction->posted_date
                     ?? $transaction->transaction_date,
 
-                'transaction_date' =>
-                $transaction->transaction_date,
+                'transaction_date' => $transaction->transaction_date,
 
-                'transfer_transaction_id' =>
-                $transaction->id,
+                'transfer_transaction_id' => $transaction->id,
             ]);
 
             $transaction->update([
-                'category_id' =>
-                null,
+                'category_id' => null,
 
-                'transfer_transaction_id' =>
-                $matchingTransaction->id,
+                'transfer_transaction_id' => $matchingTransaction->id,
             ]);
         });
 
@@ -205,12 +181,12 @@ class TransactionController extends Controller
 
         $startDate = date(
             'Y-m-d',
-            strtotime($transaction->transaction_date . ' -3 days')
+            strtotime($transaction->transaction_date.' -3 days')
         );
 
         $endDate = date(
             'Y-m-d',
-            strtotime($transaction->transaction_date . ' +3 days')
+            strtotime($transaction->transaction_date.' +3 days')
         );
 
         $candidates = Transaction::query()

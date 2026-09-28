@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import { route } from 'ziggy-js';
 
 interface Household {
     id: number;
@@ -147,7 +148,7 @@ function reportUrl(options: {
         month: String(options.month ?? props.month),
     });
 
-    return `/households/${props.household.id}/reports/spending-by-category?${params.toString()}`;
+    return `households/${props.household.id}/reports/spending-by-category?${params.toString()}`;
 }
 
 function previousPeriod() {
@@ -294,7 +295,7 @@ function rowBackground(row: ReportRow, rowIndex: number) {
             <!-- Header -->
             <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                    <Link :href="`/households/${household.id}/reports`"
+                    <Link :href="route('households.reports.index', { household: props.household.id })"
                         class="mb-2 inline-block text-sm font-medium text-[#477b67] hover:underline">
                         ← Reports
                     </Link>
@@ -510,7 +511,7 @@ function rowBackground(row: ReportRow, rowIndex: number) {
                                             </div>
 
                                             <Link v-if="canDrillDown"
-                                                :href="`/households/${household.id}/categories/${row.id}`"
+                                                :href="route('households.categories.show', { household: props.household.id, category: row.id })"
                                                 class="font-medium text-gray-900 hover:text-[#477b67] hover:underline">
                                                 {{ row.name }}
                                             </Link>
@@ -648,7 +649,7 @@ function rowBackground(row: ReportRow, rowIndex: number) {
                                             </div>
 
                                             <Link v-if="canDrillDown"
-                                                :href="`/households/${household.id}/categories/${row.id}`"
+                                                :href="route('households.categories.show', { household: props.household.id, category: row.id })"
                                                 class="font-medium text-gray-900 hover:text-[#477b67] hover:underline">
                                                 {{ row.name }}
                                             </Link>

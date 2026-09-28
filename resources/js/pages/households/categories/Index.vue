@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import { route } from 'ziggy-js';
 import { categoryColors } from '@/lib/categoryColors';
 
 type Household = {
@@ -81,7 +82,7 @@ const categoriesWithColors = computed(() => {
                 </p>
             </div>
 
-            <Link :href="`/households/${household.id}/categories/create`"
+            <Link :href="route('households.categories.create', { household: household.id })"
                 class="inline-flex items-center justify-center rounded-lg bg-[#477b67] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#3c6958]">
                 Add Category
             </Link>
@@ -98,7 +99,7 @@ const categoriesWithColors = computed(() => {
                 Add your first category to begin organizing transactions.
             </p>
 
-            <Link :href="`/households/${household.id}/categories/create`"
+            <Link :href="route('households.categories.create', { household: household.id })"
                 class="mt-5 inline-flex rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 dark:bg-white dark:text-gray-900">
                 Add First Category
             </Link>
@@ -216,7 +217,7 @@ const categoriesWithColors = computed(() => {
                                 </td>
 
                                 <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
-                                    <Link :href="`/households/${household.id}/categories/${category.id}/edit`"
+                                    <Link :href="route('households.categories.edit', { household: household.id, category: category.id })"
                                         class="font-medium text-gray-700 hover:text-gray-950 dark:text-gray-300 dark:hover:text-white">
                                         Edit
                                     </Link>
@@ -265,7 +266,7 @@ const categoriesWithColors = computed(() => {
                         </div>
 
                         <div class="mt-4 border-t border-gray-100 pt-3 text-right">
-                            <Link :href="`/households/${household.id}/categories/${category.id}/edit`"
+                            <Link :href="route('households.categories.edit', { household: household.id, category: category.id })"
                                 class="text-sm font-medium text-[#477b67] hover:underline">
                                 Edit
                             </Link>

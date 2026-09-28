@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import { categoryColors } from '@/lib/categoryColors';
+
 
 type CategoryRow = {
     id: number;
@@ -47,7 +49,7 @@ const canDrillDown =
 
 function changeContext(context: 'household' | 'ministry_au') {
     router.get(
-        `/households/${props.household.id}/reports/category-balances`,
+        route('households.reports.category-balances', { household: props.household.id }),
         {
             context,
         },
@@ -154,7 +156,7 @@ function formatAmount(amount: number) {
                 <div>
                     <template v-for="category in heading.categories" :key="category.id">
                         <Link v-if="canDrillDown"
-                            :href="`/households/${household.id}/dashboard/envelopes/${category.id}`"
+                            :href="route('households.dashboard.envelopes.show', { household: props.household.id, envelope: category.id })"
                             class="flex items-center justify-between border-t border-gray-300 px-5 py-3 transition hover:brightness-[0.98]"
                             :class="categoryColors[
                                 index % categoryColors.length

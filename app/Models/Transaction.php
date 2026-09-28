@@ -35,10 +35,12 @@ class Transaction extends Model
             'transaction_date' => 'date',
         ];
     }
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
+
     public function financialAccount(): BelongsTo
     {
         return $this->belongsTo(FinancialAccount::class);

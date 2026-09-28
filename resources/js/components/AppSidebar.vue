@@ -115,6 +115,11 @@ const taskNavItems = computed<NavItem[]>(() => {
             icon: Upload,
         },
         {
+            title: 'Record Balances',
+            href: `/households/${id}/balances`,
+            icon: Tags,
+        },
+        {
             title: 'Move Between Envelopes',
             href: `/households/${id}/category-transfers/create`,
             icon: ArrowRightLeft,
@@ -139,6 +144,11 @@ const dataNavItems = computed<NavItem[]>(() => {
             title: 'Accounts',
             href: `/households/${id}/accounts`,
             icon: WalletCards,
+        },
+        {
+            title: 'Balances',
+            href: `/households/${id}/balances`,
+            icon: Tags,
         },
         {
             title: 'Categories',

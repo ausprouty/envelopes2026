@@ -8,11 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class FinancialAccountBalanceHistory extends Model
 {
     protected $fillable = [
-        'financial_account_id',
-        'ledger_balance',
         'available_balance',
         'balance_date',
         'balance_type',
+        'financial_account_id',
+        'ledger_balance',
         'source',
     ];
 

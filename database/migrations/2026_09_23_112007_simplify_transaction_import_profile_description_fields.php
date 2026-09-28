@@ -23,7 +23,7 @@ return new class extends Migration
                 ->nullable()
                 ->comment(
                     'For CSV imports: column containing the bank-supplied '
-                    . 'transaction description. Not used for OFX/QBO/QFX.'
+                    .'transaction description. Not used for OFX/QBO/QFX.'
                 )
                 ->change();
 
@@ -31,8 +31,8 @@ return new class extends Migration
                 ->nullable()
                 ->comment(
                     'For OFX/QBO/QFX imports: tag such as MEMO or NAME '
-                    . 'containing the bank-supplied transaction description. '
-                    . 'Not used for CSV.'
+                    .'containing the bank-supplied transaction description. '
+                    .'Not used for CSV.'
                 )
                 ->change();
         });

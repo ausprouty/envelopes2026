@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft, Eye } from '@lucide/vue';
+import { route } from 'ziggy-js';
+
 
 type Household = {
     id: number;
@@ -49,7 +50,7 @@ const categoryImage = (
     <Head :title="category.name" />
 
     <div class="mx-auto max-w-5xl space-y-6 p-6">
-        <Link :href="`/households/${household.id}/dashboard`"
+            <Link :href="route('households.dashboard', { household: household.id })"
             class="inline-flex items-center gap-2 text-sm font-medium text-[#477b67] hover:underline">
             ← Dashboard
         </Link>
@@ -77,7 +78,7 @@ const categoryImage = (
         <!-- ENVELOPES -->
         <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
             <Link v-for="(envelope, index) in envelopes" :key="envelope.id"
-                :href="`/households/${household.id}/dashboard/envelopes/${envelope.id}`"
+                  :href="route('households.dashboard.envelopes.show', { household: household.id, envelope: envelope.id })"
                 class="flex items-center justify-between gap-4 px-6 py-5 transition hover:bg-[#f3f8f5]" :class="{
                     'border-t border-gray-200': index > 0,
                 }">

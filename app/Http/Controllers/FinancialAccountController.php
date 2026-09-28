@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\FinancialAccount;
 use App\Models\Household;
 use App\Models\TransactionImportProfile;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,7 +19,7 @@ class FinancialAccountController extends Controller
     {
         // Make sure the logged-in user belongs to this household.
         // Admins are allowed to view any household.
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::user();
 
         if (
@@ -106,8 +106,6 @@ class FinancialAccountController extends Controller
 
         $financialAccount->load('importProfiles');
 
-
-
         return Inertia::render('households/accounts/Edit', [
             'account' => $financialAccount,
 
@@ -132,6 +130,7 @@ class FinancialAccountController extends Controller
                 ->values(),
         ]);
     }
+
     public function update(
         Request $request,
         Household $household,
@@ -223,7 +222,6 @@ class FinancialAccountController extends Controller
             'is_active' => ['boolean'],
 
             'legacy_paidby_id' => ['nullable', 'integer'],
-
 
             'warning_balance' => ['nullable', 'numeric'],
 

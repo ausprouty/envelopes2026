@@ -23,7 +23,7 @@ return new class extends Migration
                 ->nullable()
                 ->comment(
                     'User-entered details for remembering the purpose of the '
-                        . 'transaction or providing reimbursement information.'
+                        .'transaction or providing reimbursement information.'
                 )
                 ->change();
         });

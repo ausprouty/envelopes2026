@@ -1,10 +1,12 @@
 <script setup lang="ts">
+
 import { Head, Link } from '@inertiajs/vue3';
 import {
     ArrowLeft,
     CircleDollarSign,
     ReceiptText,
 } from '@lucide/vue';
+import { route } from 'ziggy-js';
 
 interface Household {
     id: number;
@@ -65,7 +67,7 @@ const shortDate = (date: string) => {
     <div class="p-4 sm:p-6">
         <!-- Back navigation -->
         <div class="mb-5 flex items-center gap-2 text-sm font-medium text-[#477b67]">
-            <Link :href="`/households/${household.id}/reports/category-balances?context=${envelope.context}`"
+                    <Link :href="route('households.reports.category-balances', { household: household.id, context: envelope.context })"
                 class="inline-flex items-center gap-1 hover:underline">
                 <ArrowLeft class="h-4 w-4" />
                 Category Balances
@@ -73,7 +75,7 @@ const shortDate = (date: string) => {
 
             <span class="text-gray-400">•</span>
 
-            <Link :href="`/households/${household.id}/dashboard?context=${envelope.context}`" class="hover:underline">
+            <Link :href="route('households.dashboard', { household: household.id })" class="hover:underline">
                 Dashboard
             </Link>
         </div>

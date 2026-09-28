@@ -195,28 +195,29 @@ class ImportProfileController extends Controller
 
         ]);
     }
+
     private function cleanProfileData(array $data): array
-{
-    if ($data['format'] === 'csv') {
-        // OFX/QFX/QBO-only setting.
-        $data['description_field'] = null;
+    {
+        if ($data['format'] === 'csv') {
+            // OFX/QFX/QBO-only setting.
+            $data['description_field'] = null;
+        }
+
+        if ($data['format'] === 'ofx') {
+            // CSV-only settings.
+            $data['header_signature'] = null;
+            $data['date_column'] = null;
+            $data['description_column'] = null;
+            $data['amount_column'] = null;
+            $data['debit_column'] = null;
+            $data['credit_column'] = null;
+            $data['ledger_balance_column'] = null;
+            $data['available_balance_column'] = null;
+
+            // OFX dates come from DTPOSTED rather than a CSV date format.
+            $data['date_format'] = null;
+        }
+
+        return $data;
     }
-
-    if ($data['format'] === 'ofx') {
-        // CSV-only settings.
-        $data['header_signature'] = null;
-        $data['date_column'] = null;
-        $data['description_column'] = null;
-        $data['amount_column'] = null;
-        $data['debit_column'] = null;
-        $data['credit_column'] = null;
-        $data['ledger_balance_column'] = null;
-        $data['available_balance_column'] = null;
-
-        // OFX dates come from DTPOSTED rather than a CSV date format.
-        $data['date_format'] = null;
-    }
-
-    return $data;
-}
 }

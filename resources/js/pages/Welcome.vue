@@ -2,7 +2,9 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import { route } from 'ziggy-js';
 import { login } from '@/routes';
+
 
 
 type PageProps = {
@@ -21,7 +23,9 @@ const dashboardUrl = computed(() => {
     const householdId = page.props.auth.user?.households?.[0]?.id;
 
     return householdId
-        ? `/households/${householdId}/dashboard`
+        ? route('households.dashboard', {
+              household: householdId,
+          })
         : '#';
 });
 </script>

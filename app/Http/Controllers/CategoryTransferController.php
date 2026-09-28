@@ -14,8 +14,6 @@ use Inertia\Response;
 
 class CategoryTransferController extends Controller
 {
-
-
     public function create(
         Household $household
     ): Response {
@@ -44,6 +42,7 @@ class CategoryTransferController extends Controller
             'categories' => $categories,
         ]);
     }
+
     public function store(
         Request $request,
         Household $household

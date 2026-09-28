@@ -121,8 +121,8 @@ class QfxParser
     ): ?string {
         if (
             preg_match(
-                '/<' . preg_quote($tag, '/') . '>(.*?)<\/'
-                    . preg_quote($tag, '/') . '>/si',
+                '/<'.preg_quote($tag, '/').'>(.*?)<\/'
+                    .preg_quote($tag, '/').'>/si',
                 $contents,
                 $match
             )
@@ -139,7 +139,7 @@ class QfxParser
     ): ?string {
         if (
             preg_match(
-                '/<' . preg_quote($tag, '/') . '>([^<\r\n]*)/i',
+                '/<'.preg_quote($tag, '/').'>([^<\r\n]*)/i',
                 $block,
                 $match
             )
@@ -178,10 +178,10 @@ class QfxParser
         }
 
         return substr($date, 0, 4)
-            . '-'
-            . substr($date, 4, 2)
-            . '-'
-            . substr($date, 6, 2);
+            .'-'
+            .substr($date, 4, 2)
+            .'-'
+            .substr($date, 6, 2);
     }
 
     private function parseDateTime(?string $value): ?string
@@ -197,15 +197,15 @@ class QfxParser
         }
 
         return substr($dateTime, 0, 4)
-            . '-'
-            . substr($dateTime, 4, 2)
-            . '-'
-            . substr($dateTime, 6, 2)
-            . ' '
-            . substr($dateTime, 8, 2)
-            . ':'
-            . substr($dateTime, 10, 2)
-            . ':'
-            . substr($dateTime, 12, 2);
+            .'-'
+            .substr($dateTime, 4, 2)
+            .'-'
+            .substr($dateTime, 6, 2)
+            .' '
+            .substr($dateTime, 8, 2)
+            .':'
+            .substr($dateTime, 10, 2)
+            .':'
+            .substr($dateTime, 12, 2);
     }
 }

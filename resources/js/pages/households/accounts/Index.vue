@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 
 interface Household {
     id: number;
@@ -44,7 +45,7 @@ function formatAccountType(type: string): string {
                     </p>
                 </div>
 
-                <Link :href="`/households/${household.id}/accounts/create`"
+                    <Link :href="route('households.accounts.create', { household: household.id })"
                     class="inline-flex items-center justify-center rounded-lg bg-[#477b67] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#3d6b59]">
                     + Add Account
                 </Link>
@@ -129,7 +130,7 @@ function formatAccountType(type: string): string {
                                 </td>
 
                                 <td class="px-6 py-4 text-right">
-                                    <Link :href="`/households/${household.id}/accounts/${account.id}/edit`"
+                                    <Link :href="route('households.accounts.edit', { household: household.id, financialAccount: account.id })"
                                         class="text-sm font-medium text-[#477b67] hover:underline">
                                         Edit
                                     </Link>
@@ -163,7 +164,7 @@ function formatAccountType(type: string): string {
                                 {{ account.account_type }}
                             </span>
 
-                            <Link :href="`/households/${household.id}/accounts/${account.id}/edit`"
+                            <Link :href="route('households.accounts.edit', { household: household.id, financialAccount: account.id })"
                                 class="text-sm font-medium text-[#477b67] hover:underline">
                                 Edit
                             </Link>

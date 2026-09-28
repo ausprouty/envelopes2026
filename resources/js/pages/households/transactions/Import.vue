@@ -3,6 +3,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ChevronDown, ChevronUp, Upload } from '@lucide/vue';
 import axios from 'axios';
 import { computed, ref, watch } from 'vue';
+import { route } from 'ziggy-js';
 
 
 /*
@@ -319,7 +320,10 @@ async function loadRecentTransactions(): Promise<void> {
 
     try {
         const response = await fetch(
-            `/households/${props.household.id}/accounts/${financialAccountId.value}/recent-transactions`,
+            route('households.accounts.recent-transactions', {
+                household: props.household.id,
+                account: financialAccountId.value,
+            }),
             {
                 headers: {
                     'Accept': 'application/json',
@@ -423,7 +427,9 @@ async function submitQfx(): Promise<void> {
     */
     try {
         const response = await axios.post(
-            `/households/${props.household.id}/transactions/import/ofx/preview`,
+            route('households.transactions.import.ofx.preview', {
+                household: props.household.id
+            }),
             formData
         );
 
@@ -795,7 +801,9 @@ async function checkDuplicates(): Promise<void> {
 
     try {
         const response = await axios.post(
-            `/households/${props.household.id}/transactions/import/check-duplicates`,
+            route('households.transactions.import.check-duplicates', {
+                household: props.household.id
+            }),
             {
                 available_balance:
                     availableBalance.value,
@@ -890,7 +898,7 @@ async function importTransactions(): Promise<void> {
 
     try {
         await axios.post(
-            `/households/${props.household.id}/transactions/import/store`,
+            route('households.transactions.import.store', { household: props.household.id }),
             {
                 available_balance:
                     availableBalance.value,
@@ -954,7 +962,7 @@ async function importTransactions(): Promise<void> {
     */
 
     window.location.href =
-        `/households/${props.household.id}/transactions`;
+        route('households.transactions.index', { household: props.household.id });
 }
 </script>
 <template>
@@ -1118,12 +1126,12 @@ async function importTransactions(): Promise<void> {
                 </div>
 
                 <div class="mt-3 flex flex-wrap gap-3">
-                    <Link :href="`/households/${household.id}/accounts/${financialAccountId}/edit`"
+                    <Link :href="route('households.accounts.edit', { household: household.id, account: financialAccountId })"
                         class="inline-flex items-center rounded-md bg-[#477b67] px-3 py-2 text-sm font-medium text-white hover:opacity-90">
                         Assign Existing Profile
                     </Link>
 
-                    <Link :href="`/households/${household.id}/import-profiles/create`"
+                    <Link :href="route('households.import-profiles.create', { household: household.id })"
                         class="inline-flex items-center rounded-md border border-gray-400 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50">
                         Create New Profile
                     </Link>

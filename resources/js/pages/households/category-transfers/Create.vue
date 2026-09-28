@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
+import { route } from 'ziggy-js';
 
 const props = defineProps<{
     household: {
@@ -91,7 +92,7 @@ const toBalanceAfter = computed(() => {
 
 const submit = () => {
     router.post(
-        `/households/${props.household.id}/category-transfers`,
+            route('households.category-transfers.store', { household: props.household.id }),
         {
             from_category_id: fromCategoryId.value,
             to_category_id: toCategoryId.value,
@@ -116,7 +117,7 @@ const formatCurrency = (value: number) => {
 
     <div class="p-4 sm:p-6">
         <div class="mb-6">
-            <Link :href="`/households/${household.id}/dashboard`"
+            <Link :href="route('households.dashboard', { household: household.id })"
                 class="text-sm font-medium text-[#477b67] hover:underline">
                 Dashboard
             </Link>

@@ -3,6 +3,7 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { ArrowRight, CircleDollarSign, Eye, Shapes } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import { route } from 'ziggy-js';
 import { categoryColors } from '@/lib/categoryColors';
 import { categoryIcons } from '@/lib/categoryIcons';
 import type { CategoryIconName } from '@/lib/categoryIcons';
@@ -166,8 +167,8 @@ function formatAccountBalance(
                         }}
                     </div>
 
-                    <Link v-if="householdRole !== 'coach'"
-                        :href="`/households/${household.id}/income-allocations/create`"
+                        <Link v-if="householdRole !== 'coach'"
+                        :href="route('households.income-allocations.create', { household: household.id })"
                         class="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-white hover:underline">
                         Allocate Income
                         <ArrowRight class="h-4 w-4" />
@@ -397,7 +398,7 @@ function formatAccountBalance(
                 <div class="space-y-2 p-3">
                     <template v-for="category in watchCategories" :key="category.id">
                         <Link v-if="householdRole !== 'coach'"
-                            :href="`/households/${household.id}/dashboard/envelopes/${category.id}`"
+                            :href="route('households.dashboard.envelopes.show', { household: household.id, envelope: category.id })"
                             class="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm">
                             <img v-if="category.dashboard_image" :src="`/images/categories/${category.dashboard_image}`"
                                 :alt="category.name" class="h-11 w-11 shrink-0 rounded-full object-cover" />
@@ -488,7 +489,7 @@ function formatAccountBalance(
                 <div class="space-y-3 p-5">
                     <template v-for="(heading, index) in headings" :key="heading.id">
                         <Link v-if="householdRole !== 'coach'"
-                            :href="`/households/${household.id}/dashboard/categories/${heading.id}`" :class="[
+                            :href="route('households.dashboard.categories.show', { household: household.id, category: heading.id })" :class="[
                                 'flex items-center gap-3 rounded-2xl border border-white/70 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md',
                                 categoryColors[
                                     index % categoryColors.length

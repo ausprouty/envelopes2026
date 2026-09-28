@@ -12,7 +12,6 @@ use Inertia\Response;
 
 class UserController extends Controller
 {
-
     public function create(): Response
     {
         return Inertia::render('admin/users/Create', [
@@ -102,7 +101,7 @@ class UserController extends Controller
                 'required',
                 'email',
                 'max:255',
-                'unique:users,email,' . $user->id,
+                'unique:users,email,'.$user->id,
             ],
             'household_id' => [
                 'nullable',

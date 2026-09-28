@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import { route } from 'ziggy-js';
 
 type Category = {
     current_balance: number;
@@ -73,7 +74,9 @@ function categoryName(categoryId: number) {
 
 function submit() {
     router.post(
-        `/admin/households/${props.household.id}/balance-adjustments`,
+        route('admin.households.balance-adjustments.store', {
+            household: props.household.id,
+        }),
         {
             adjustment_date: adjustmentDate.value,
             balances: balances.value,
