@@ -54,6 +54,12 @@ class QfxParser
                         'DTPOSTED'
                     )
                 ),
+                'ledger_balance' => $this->parseAmount(
+                    $this->getTagValue(
+                        $transactionBlock,
+                        'ACCTBAL'
+                    )
+                ),
             ];
         }
 

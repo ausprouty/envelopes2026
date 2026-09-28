@@ -177,13 +177,7 @@ const duplicateTransactions = computed(() =>
 |--------------------------------------------------------------------------
 */
 
-function csrfToken(): string {
-    return (
-        document
-            .querySelector('meta[name="csrf-token"]')
-            ?.getAttribute('content') ?? ''
-    );
-}
+
 function convertDate(
     value: string,
     format: string | null
@@ -427,68 +421,45 @@ async function submitQfx(): Promise<void> {
     | Request Preview
     |----------------------------------------------------------------------
     */
+    try {
+        const response = await axios.post(
+            `/households/${props.household.id}/transactions/import/ofx/preview`,
+            formData
+        );
 
-    const response = await fetch(
-        `/households/${props.household.id}/transactions/import/ofx/preview`,
-        {
-            method: 'POST',
+        const data = response.data;
 
-            headers: {
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': csrfToken(),
-            },
+        availableBalance.value =
+            data.available_balance ?? null;
 
-            body: formData,
-        }
-    );
+        balanceAsOf.value =
+            data.balance_as_of ?? null;
 
-    if (!response.ok) {
-        const errorData = await response.json();
+        ledgerBalance.value =
+            data.ledger_balance ?? null;
 
-        console.log(
+        preview.value = data.transactions.map(
+            (transaction: PreviewTransaction) => ({
+                ...transaction,
+                description:
+                    transaction.description ?? '',
+                status: 'new' as const,
+            })
+        );
+
+        await checkDuplicates();
+
+        showImportForm.value = false;
+    } catch (error: any) {
+        console.error(
             'OFX upload error:',
-            errorData
+            error.response?.data ?? error
         );
 
         errorMessage.value =
-            errorData.message ??
+            error.response?.data?.message ??
             'Unable to read the OFX file.';
-
-        return;
     }
-
-    /*
-    |----------------------------------------------------------------------
-    | Store Preview
-    |----------------------------------------------------------------------
-    */
-
-    const data = await response.json();
-
-    availableBalance.value =
-        data.available_balance ?? null;
-
-    balanceAsOf.value =
-        data.balance_as_of ?? null;
-
-    ledgerBalance.value =
-        data.ledger_balance ?? null;
-
-    preview.value = data.transactions.map(
-        (transaction: PreviewTransaction) => ({
-            ...transaction,
-
-            description:
-                transaction.description ?? '',
-
-
-            status: 'new' as const,
-        })
-    );
-
-    await checkDuplicates();
-
-    showImportForm.value = false;
 }
 
 /*
@@ -841,15 +812,9 @@ async function checkDuplicates(): Promise<void> {
                 transactions:
                     preview.value.map(
                         transaction => ({
-                            amount:
-                                transaction.amount,
-
                             bank_record_id:
                                 transaction.bank_record_id ??
                                 null,
-
-                            description:
-                                transaction.description,
 
                             transaction_date:
                                 transaction.transaction_date,
@@ -1352,9 +1317,7 @@ async function importTransactions(): Promise<void> {
                                     )
                                 }}
                             </td>
-                            <td
-                             v-if="hasLedgerBalances"
-                             class="whitespace-nowrap p-3 text-right">
+                            <td v-if="hasLedgerBalances" class="whitespace-nowrap p-3 text-right">
                                 {{
                                     transaction.ledger_balance !== null &&
                                         transaction.ledger_balance !== undefined &&
@@ -1362,10 +1325,10 @@ async function importTransactions(): Promise<void> {
                                         ? new Intl.NumberFormat('en-AU', {
                                             style: 'currency',
                                             currency: transaction.currency || 'AUD',
-                                }).format(
-                                Number(transaction.ledger_balance)
-                                )
-                                : '—'
+                                        }).format(
+                                            Number(transaction.ledger_balance)
+                                        )
+                                        : '—'
                                 }}
                             </td>
 

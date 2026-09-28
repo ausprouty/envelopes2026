@@ -34,20 +34,10 @@ class TransactionImportController extends Controller
                 'array',
             ],
 
-            'transactions.*.amount' => [
-                'required',
-                'numeric',
-            ],
-
             'transactions.*.bank_record_id' => [
                 'nullable',
                 'string',
                 'max:255',
-            ],
-
-            'transactions.*.description' => [
-                'required',
-                'string',
             ],
 
             'transactions.*.transaction_date' => [
@@ -75,12 +65,6 @@ class TransactionImportController extends Controller
                 $normalizedTransaction = [
                     'transaction_date' =>
                     $transaction['transaction_date'],
-
-                    'description' =>
-                    trim($transaction['description']),
-
-                    'amount' =>
-                    (float) $transaction['amount'],
 
                     'bank_record_id' =>
                     $transaction['bank_record_id'] ?? null,
@@ -220,8 +204,7 @@ class TransactionImportController extends Controller
 
         $transactions = $qfxParser->parse(
             $contents,
-            $profile->description_field ?? 'MEMO',
-
+            $profile->description_field ?? 'MEMO'
         );
 
         $balances = $qfxParser->parseBalances($contents);
@@ -246,8 +229,11 @@ class TransactionImportController extends Controller
                     'currency' =>
                     $account->currency,
 
+                    'ledger_balance' =>
+                    $transaction['ledger_balance'] ?? null,
+
                     'bank_record_id' =>
-                    $transaction['bank_record_id'],
+                    $transaction['bank_record_id'] ?? null,
                 ];
             })
             ->values();
@@ -673,7 +659,10 @@ class TransactionImportController extends Controller
 
         $newBalance = $transaction['ledger_balance'] ?? null;
 
-        if ($newBalance === null) {
+        if (
+            $newBalance === null ||
+            (float) $newBalance <= 0
+        ) {
             return;
         }
 

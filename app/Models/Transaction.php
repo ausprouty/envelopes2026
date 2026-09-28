@@ -14,6 +14,7 @@ class Transaction extends Model
         'category_id',
         'comment',
         'currency',
+        'expense_type',
         'deferred_at',
         'description',
         'details',
@@ -63,7 +64,7 @@ class Transaction extends Model
             'transfer_transaction_id'
         );
     }
-    
+
     public function splits(): HasMany
     {
         return $this->hasMany(TransactionSplit::class);

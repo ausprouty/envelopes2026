@@ -169,7 +169,22 @@ class FinancialAccountController extends Controller
 
             'account_type' => [
                 'required',
-                'in:cash,checking,savings,credit_card,term_deposit,investment,retirement,superannuation,crypto,reimbursement,ministry,virtual,other',
+                Rule::in([
+                    'cash',
+                    'checking',
+                    'credit_card',
+                    'crypto',
+                    'investment',
+                    'loan',
+                    'ministry',
+                    'other',
+                    'reimbursement',
+                    'retirement',
+                    'savings',
+                    'superannuation',
+                    'term_deposit',
+                    'virtual',
+                ]),
             ],
             'category_type' => [
                 'required',

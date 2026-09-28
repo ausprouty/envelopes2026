@@ -33,6 +33,7 @@ class FinancialTransactionController extends Controller
 
         while (true) {
             $transaction = Transaction::query()
+                ->with('financialAccount')
                 ->where('household_id', $household->id)
                 ->whereNull('category_id')
                 ->whereDoesntHave('splits')
@@ -58,7 +59,7 @@ class FinancialTransactionController extends Controller
 
             $rule = $this->matchingRule(
                 $household,
-                $transaction->payee ?? ''
+                $transaction->description ?? ''
             );
 
             if (! $rule) {
@@ -137,9 +138,10 @@ class FinancialTransactionController extends Controller
                 ->where('account_type', 'cash')
                 ->orderBy('account_name')
                 ->get([
-                    'id',
                     'account_name',
+                    'account_type',
                     'currency',
+                    'id',
                 ]),
         ]);
     }
@@ -221,7 +223,7 @@ class FinancialTransactionController extends Controller
                 'min:0.01',
             ],
 
-            'splits.*.description' => [
+            'splits.*.details' => [
                 'nullable',
                 'string',
                 'max:255',
@@ -264,7 +266,7 @@ class FinancialTransactionController extends Controller
                         'category_id' => $category->id,
                         'financial_account_id' => null,
                         'amount' => $signedAmount,
-                        'description' => $split['description'] ?? null,
+                        'details' => $split['details'] ?? null,
                     ]);
 
                     if ($category->tracks_balance) {
@@ -290,7 +292,7 @@ class FinancialTransactionController extends Controller
                         'category_id' => null,
                         'financial_account_id' => $cashAccount->id,
                         'amount' => $signedAmount,
-                        'description' => $split['description'] ?? 'Cash out',
+                        'details' => $split['details'] ?? 'Cash out',
                     ]);
                 }
             }
@@ -322,13 +324,13 @@ class FinancialTransactionController extends Controller
                 'gt:0',
             ],
 
-            'payee' => [
+            'description' => [
                 'nullable',
                 'string',
                 'max:255',
             ],
 
-            'description' => [
+            'details' => [
                 'nullable',
                 'string',
                 'max:255',
@@ -367,11 +369,11 @@ class FinancialTransactionController extends Controller
             'transaction_date' =>
             $validated['transaction_date'],
 
-            'payee' =>
-            $validated['payee'] ?? null,
-
             'description' =>
             $validated['description'] ?? null,
+
+            'details' =>
+            $validated['details'] ?? null,
 
             // Spending cash is an outgoing transaction.
             'amount' =>
@@ -398,6 +400,11 @@ class FinancialTransactionController extends Controller
         );
 
         $validated = $request->validate([
+            'always' => [
+                'required',
+                'boolean',
+            ],
+
             'category_id' => [
                 'required',
                 Rule::exists('categories', 'id')
@@ -409,15 +416,20 @@ class FinancialTransactionController extends Controller
                     ),
             ],
 
-            'always' => ['required', 'boolean'],
-
-            'match_type' => [
-                'nullable',
+            'expense_type' => [
+                'required',
                 Rule::in([
-                    'exact',
-                    'contains',
-                    'starts_with',
+                    'fringe',
+                    'ministry',
+                    'personal',
                 ]),
+            ],
+
+            'gst_amount' => [
+                'nullable',
+                'numeric',
+                'min:0',
+                'lte:' . abs((float) $transaction->amount),
             ],
 
             'match_text' => [
@@ -426,16 +438,19 @@ class FinancialTransactionController extends Controller
                 'max:255',
             ],
 
-            'normalized_payee' => [
+            'match_type' => [
+                'nullable',
+                Rule::in([
+                    'contains',
+                    'exact',
+                    'starts_with',
+                ]),
+            ],
+
+            'normalized_description' => [
                 'nullable',
                 'string',
                 'max:255',
-            ],
-            'gst_amount' => [
-                'nullable',
-                'numeric',
-                'min:0',
-                'lte:' . abs((float) $transaction->amount),
             ],
         ]);
 
@@ -475,6 +490,7 @@ class FinancialTransactionController extends Controller
 
         $transaction->update([
             'category_id' => $newCategory->id,
+            'expense_type' => $validated['expense_type'],
             'gst_amount' => $gstAmount,
         ]);
 
@@ -484,16 +500,16 @@ class FinancialTransactionController extends Controller
                     'household_id' => $household->id,
                     'match_type' => $validated['match_type'] ?? 'contains',
                     'match_text' => trim(
-                        $validated['match_text'] ?? $transaction->payee
+                        $validated['match_text'] ?? $transaction->description
                     ),
                 ],
                 [
                     'category_id' => $validated['category_id'],
                     'priority' => 100,
-                    'normalized_payee' => filled(
-                        $validated['normalized_payee'] ?? null
+                    'normalized_description' => filled(
+                        $validated['normalized_description'] ?? null
                     )
-                        ? trim($validated['normalized_payee'])
+                        ? trim($validated['normalized_description'])
                         : null,
                     'is_active' => true,
                 ]
@@ -505,9 +521,9 @@ class FinancialTransactionController extends Controller
 
     private function matchingRule(
         Household $household,
-        string $payee
+        string $description
     ): ?TransactionCategoryRule {
-        $payee = trim($payee);
+        $description = trim($description);
 
         return TransactionCategoryRule::query()
             ->where('household_id', $household->id)
@@ -515,20 +531,20 @@ class FinancialTransactionController extends Controller
             ->orderByDesc('priority')
             ->orderBy('match_text')
             ->get()
-            ->first(function (TransactionCategoryRule $rule) use ($payee) {
+            ->first(function (TransactionCategoryRule $rule) use ($description) {
                 $matchText = trim($rule->match_text);
 
                 return match ($rule->match_type) {
-                    'exact' => Str::lower($payee)
+                    'exact' => Str::lower($description)
                         === Str::lower($matchText),
 
                     'starts_with' => Str::startsWith(
-                        Str::lower($payee),
+                        Str::lower($description),
                         Str::lower($matchText)
                     ),
 
                     'contains' => Str::contains(
-                        Str::lower($payee),
+                        Str::lower($description),
                         Str::lower($matchText)
                     ),
 

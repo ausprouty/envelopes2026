@@ -6,6 +6,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CategoryTransferController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Admin\EnvelopeBalanceAdjustmentController;
+use App\Http\Controllers\FinancialAccountBalanceHistoryController;
 use App\Http\Controllers\FinancialAccountController;
 use App\Http\Controllers\FinancialTransactionController;
 use App\Http\Controllers\ImportProfileController;
@@ -228,8 +229,19 @@ Route::middleware([
                     '/dashboard/envelopes/{category}',
                     [DashboardController::class, 'envelope']
                 )->name('dashboard.envelope');
-
-
+                /*
+                |--------------------------------------------------------------------------
+                | Financial Account Balance History
+                |--------------------------------------------------------------------------
+                */
+                Route::get(
+                    '/financial-accounts/{financialAccount}/balances/create',
+                    [FinancialAccountBalanceHistoryController::class, 'create']
+                )->name('financial-accounts.balances.create');
+                Route::post(
+                    '/financial-accounts/{financialAccount}/balances',
+                    [FinancialAccountBalanceHistoryController::class, 'store']
+                )->name('financial-accounts.balances.store');
                 /*
                 |--------------------------------------------------------------------------
                 | Import profiles
@@ -316,14 +328,24 @@ Route::middleware([
                 )->name('transactions.category.update');
 
                 Route::post(
+                    '/transactions/{transaction}/link-transfer',
+                    [TransactionController::class, 'linkTransfer']
+                )->name('transactions.link-transfer');
+
+                Route::post(
                     '/transactions/{transaction}/split',
                     [FinancialTransactionController::class, 'split']
                 )->name('transactions.split');
-                
+
                 Route::post(
                     '/transactions/{transaction}/transfer',
                     [TransactionController::class, 'storeTransfer']
                 )->name('transactions.transfer.store');
+
+                Route::get(
+                    '/transactions/{transaction}/transfer-matches',
+                    [TransactionController::class, 'transferMatches']
+                )->name('transactions.transfer-matches');
 
 
                 /*

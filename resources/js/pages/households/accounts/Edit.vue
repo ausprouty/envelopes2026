@@ -143,19 +143,18 @@ function submit() {
                             class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-[#477b67] focus:outline-none focus:ring-1 focus:ring-[#477b67]">
                             <option value="cash">Cash</option>
                             <option value="checking">Checking</option>
-                            <option value="savings">Savings</option>
                             <option value="credit_card">Credit Card</option>
-                            <option value="term_deposit">Term Deposit</option>
-                            <option value="investment">Investment</option>
-                            <option value="retirement">Retirement</option>
-                            <option value="superannuation">Superannuation</option>
                             <option value="crypto">Crypto</option>
-                            <option value="reimbursement">
-                                Reimbursement
-                            </option>
+                            <option value="investment">Investment</option>
+                            <option value="loan">Loan</option>
                             <option value="ministry">Ministry</option>
-                            <option value="virtual">Virtual</option>
                             <option value="other">Other</option>
+                            <option value="reimbursement">Reimbursement</option>
+                            <option value="retirement">Retirement</option>
+                            <option value="savings">Savings</option>
+                            <option value="superannuation">Superannuation</option>
+                            <option value="term_deposit">Term Deposit</option>
+                            <option value="virtual">Virtual</option>
                         </select>
 
                         <p v-if="form.errors.account_type" class="mt-1 text-sm text-red-600">

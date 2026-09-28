@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Check, Tag } from '@lucide/vue';
+import axios from 'axios';
 import { computed, ref, watch } from 'vue';
+import ExpenseTypeButtons from '@/components/ExpenseTypeButtons.vue';
+
 
 type Category = {
     id: number;
@@ -11,18 +14,10 @@ type Category = {
 };
 
 type FinancialAccount = {
-    id: number;
     account_name: string;
+    account_type: string;
     currency: string;
-};
-
-type Transaction = {
     id: number;
-    transaction_date: string;
-    payee: string | null;
-    amount: number | string;
-    currency: string;
-    description: string | null;
 };
 
 type SplitRow = {
@@ -30,8 +25,35 @@ type SplitRow = {
     category_id: number | null;
     financial_account_id: number | null;
     amount: string;
-    description: string;
+    detail: string;
 };
+
+type Transaction = {
+    amount: number | string;
+    currency: string;
+    description: string | null;
+    detail: string | null;
+    financial_account: FinancialAccount;
+    id: number;
+    transaction_date: string;
+};
+
+type ExpenseType = 'personal' | 'fringe' | 'ministry';
+
+
+interface TransferMatch {
+    amount: number;
+    currency: string;
+    detail: string;
+    financial_account: {
+        account_name: string;
+        id: number;
+    };
+    financial_account_id: number;
+    id: number;
+    transaction_date: string;
+}
+
 
 const props = defineProps<{
     household: {
@@ -51,8 +73,8 @@ const props = defineProps<{
 // Transaction
 // -----------------------------------------------------------------------------
 
-const description = ref(
-    props.transaction?.description ?? '',
+const detail = ref(
+    props.transaction?.detail ?? '',
 );
 
 const amount = computed(() => {
@@ -65,6 +87,7 @@ const amount = computed(() => {
         maximumFractionDigits: 2,
     });
 });
+const expenseType = ref<ExpenseType>('personal');
 const enteringCash = ref(false);
 
 const cashDate = ref(
@@ -102,7 +125,7 @@ const filteredCategories = computed(() =>
     ),
 );
 
-// -----------------------------------------------------------------------------
+// --------------------------------------------F---------------------------------
 // GST
 // -----------------------------------------------------------------------------
 
@@ -138,7 +161,7 @@ function newSplitRow(): SplitRow {
         category_id: null,
         financial_account_id: null,
         amount: '',
-        description: '',
+        detail: '',
     };
 }
 
@@ -171,7 +194,53 @@ const splitBalanced = computed(() => {
     return Math.abs(splitRemaining.value) < 0.005;
 });
 
+// -----------------------------------------------------------------------------
+// Transfers
+// -----------------------------------------------------------------------------
 
+const transferMatches = ref<TransferMatch[]>([]);
+const transferTransactionId = ref<number | null>(null);
+const selectedTransferMatchId = ref<number | null>(null);
+const showTransferMatches = ref(false);
+
+async function loadTransferMatches(
+    transactionId: number
+): Promise<void> {
+    transferTransactionId.value = transactionId;
+    selectedTransferMatchId.value = null;
+    const response = await axios.get(
+        `/households/${props.household.id}/transactions/${transactionId}/transfer-matches`
+    );
+
+    transferMatches.value = response.data.matches ?? [];
+    showTransferMatches.value = true;
+}
+
+function linkTransfer(): void {
+    if (
+        !transferTransactionId.value ||
+        !selectedTransferMatchId.value
+    ) {
+        return;
+    }
+
+    router.post(
+        `/households/${props.household.id}/transactions/${transferTransactionId.value}/link-transfer`,
+        {
+            matching_transaction_id:
+                selectedTransferMatchId.value,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                showTransferMatches.value = false;
+                transferMatches.value = [];
+                transferTransactionId.value = null;
+                selectedTransferMatchId.value = null;
+            },
+        }
+    );
+}
 
 // -----------------------------------------------------------------------------
 // Watchers
@@ -180,10 +249,17 @@ const splitBalanced = computed(() => {
 watch(
     () => props.transaction?.id,
     () => {
-        description.value =
-            props.transaction?.description ?? '';
+        detail.value =
+            props.transaction?.detail ?? '';
     },
 );
+
+watch(expenseType, newExpenseType => {
+    assignmentContext.value =
+        newExpenseType === 'ministry'
+            ? 'ministry_au'
+            : 'household';
+});
 
 watch(assignmentContext, () => {
     categoryId.value = '';
@@ -195,6 +271,7 @@ watch(categoryId, newCategoryId => {
     if (!newCategoryId) {
         calculateGst.value = false;
         gstAmount.value = '';
+
         return;
     }
 
@@ -209,6 +286,7 @@ watch(categoryId, newCategoryId => {
     ) {
         calculateGst.value = false;
         gstAmount.value = '';
+
         return;
     }
 
@@ -245,11 +323,11 @@ const formatDate = (date: string) => {
 };
 
 function suggestMatchText() {
-    if (!props.transaction?.payee) {
+    if (!props.transaction?.description) {
         return '';
     }
 
-    const payee = props.transaction.payee.trim();
+    const description = props.transaction.description.trim();
 
     const commonMatches = [
         'SAFEWAY',
@@ -263,13 +341,13 @@ function suggestMatchText() {
         'UBER',
     ];
 
-    const upperPayee = payee.toUpperCase();
+    const upperPayee = description.toUpperCase();
 
     const match = commonMatches.find(
         item => upperPayee.includes(item),
     );
 
-    return match ?? payee;
+    return match ?? description;
 }
 
 // -----------------------------------------------------------------------------
@@ -322,8 +400,8 @@ function saveCashTransaction() {
         {
             transaction_date: cashDate.value,
             amount: cashAmount.value,
-            payee: cashPayee.value || null,
-            description: cashDescription.value || null,
+            description: cashPayee.value || null,
+            detail: cashDescription.value || null,
             category_id: categoryId.value,
 
             gst_amount:
@@ -376,34 +454,39 @@ function saveAndNext() {
     router.put(
         `/households/${props.household.id}/transactions/${props.transaction.id}/category`,
         {
-            category_id: categoryId.value,
             always: always.value,
-            match_type: 'contains',
-            match_text: always.value
-                ? matchText.value
-                : null,
-            normalized_payee: null,
+            category_id: categoryId.value,
+            expense_type: expenseType.value,
             gst_amount:
                 assignmentContext.value === 'ministry_au' && calculateGst.value
                     ? gstAmount.value
                     : null,
-        },
-        {
-            preserveScroll: true,
+            match_text: always.value
+                ? matchText.value
+                : null,
+            match_type: 'contains',
+            normalized_description: null,
+        }, {
+        preserveScroll: true,
 
-            onSuccess: () => {
-                categoryId.value = '';
-                always.value = false;
-                matchText.value = '';
-                calculateGst.value = false;
-                gstAmount.value = '';
-                assignmentContext.value = 'household';
-            },
-
-            onFinish: () => {
-                saving.value = false;
-            },
+        onSuccess: () => {
+            always.value = false;
+            assignmentContext.value = 'household';
+            calculateGst.value = false;
+            categoryId.value = '';
+            expenseType.value = 'personal';
+            gstAmount.value = '';
+            matchText.value = '';
+            selectedTransferMatchId.value = null;
+            showTransferMatches.value = false;
+            transferMatches.value = [];
+            transferTransactionId.value = null;
         },
+
+        onFinish: () => {
+            saving.value = false;
+        },
+    },
     );
 }
 
@@ -417,7 +500,7 @@ function addSplitRow() {
         category_id: null,
         financial_account_id: null,
         amount: '',
-        description: '',
+        detail: '',
     });
 }
 
@@ -506,22 +589,9 @@ function saveSplit() {
                 </div>
             </div>
 
-            <!--  PERSONAL / MINISTRY   -->
-            <div v-if="hasAuMinistryCategories" class="mt-5 flex gap-2">
-                <button type="button" class="rounded-md border px-4 py-2 font-medium shadow-sm" :class="assignmentContext === 'household'
-                        ? 'border-[#477b67] bg-[#477b67] text-white'
-                        : 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100'
-                    " @click="assignmentContext = 'household'">
-                    Personal
-                </button>
-
-                <button type="button" class="rounded-md border px-4 py-2 font-medium shadow-sm" :class="assignmentContext === 'ministry_au'
-                        ? 'border-[#477b67] bg-[#477b67] text-white'
-                        : 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100'
-                    " @click="assignmentContext = 'ministry_au'">
-                    Ministry
-                </button>
-            </div>
+            <!--  CASH TRANSACTION BUTTONS   -->
+            <ExpenseTypeButtons v-if="hasAuMinistryCategories" v-model="expenseType" class="mt-5" :show-fringe="false"
+                :show-ministry="true" />
 
             <!--  PAYEE   -->
             <div class="mt-5">
@@ -626,13 +696,18 @@ function saveSplit() {
                 <div class="flex items-start justify-between gap-4">
                     <!--  DATE AND AMOUNT   -->
                     <div>
-                        <div class="text-sm text-gray-500">
-                            {{ formatDate(transaction.transaction_date) }}
+                        <div class="flex items-center justify-between text-sm text-muted-foreground">
+                            <span>{{ formatDate(transaction.transaction_date) }}</span>
+                            <span>&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;&nbsp;</span>
+                            <span>{{ transaction.financial_account.account_name }}
+                                —
+                                {{ transaction.financial_account.account_type }}
+                            </span>
                         </div>
 
                         <div class="mt-2 text-xl font-semibold" :class="Number(transaction.amount) < 0
-                                ? 'text-red-600'
-                                : 'text-emerald-700'
+                            ? 'text-red-600'
+                            : 'text-emerald-700'
                             ">
                             {{ transaction.currency }}
                             {{ amount }}
@@ -647,62 +722,25 @@ function saveSplit() {
                     </button>
                 </div>
 
-                <!--  PAYEE   -->
+                <!--  DESCRIPTION  (WAS PAYEE)   -->
                 <div class="mt-2 text-2xl font-semibold text-gray-900">
-                    {{ transaction.payee || 'Unknown payee' }}
+                    {{ transaction.description || 'Unknown description' }}
                 </div>
             </div>
 
-            <!--  PERSONAL / MINISTRY   -->
-            <div v-if="hasAuMinistryCategories" class="mt-5 flex gap-2">
-                <button type="button" class="rounded-md border px-4 py-2 font-medium shadow-sm" :class="assignmentContext === 'household'
-                        ? 'border-[#477b67] bg-[#477b67] text-white'
-                        : 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100'
-                    " @click="assignmentContext = 'household'">
-                    Personal
-                </button>
+            <!--  NORMAL TRANSACTION BUTTONS   -->
 
-                <button type="button" class="rounded-md border px-4 py-2 font-medium shadow-sm" :class="assignmentContext === 'ministry_au'
-                        ? 'border-[#477b67] bg-[#477b67] text-white'
-                        : 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100'
-                    " @click="assignmentContext = 'ministry_au'">
-                    Ministry
-                </button>
-            </div>
+            <ExpenseTypeButtons v-if="hasAuMinistryCategories" v-model="expenseType" class="mt-5"
+                :show-fringe="transaction.financial_account.account_type === 'credit_card'" :show-ministry="true" />
 
-            <!--  GST   -->
-            <div v-if="assignmentContext === 'ministry_au'"
-                class="mt-5 rounded-lg border border-gray-300 bg-gray-50 p-4">
-                <label class="flex items-center gap-3">
-                    <input v-model="calculateGst" type="checkbox" class="h-4 w-4" />
 
-                    <span class="text-sm font-medium">
-                        Calculate GST
-                    </span>
-                </label>
-
-                <div v-if="calculateGst" class="mt-4">
-                    <label class="mb-2 block text-sm font-medium">
-                        GST Amount
-                    </label>
-
-                    <input v-model="gstAmount" type="number" step="0.01" min="0"
-                        class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 font-medium shadow-sm focus:border-green-600 focus:ring-2 focus:ring-green-200" />
-
-                    <p class="mt-1 text-sm text-muted-foreground">
-                        Calculated as 1/11 of the transaction.
-                        You can change it if needed.
-                    </p>
-                </div>
-            </div>
-
-            <!--  DESCRIPTION   -->
+            <!--  Details   -->
             <div class="mt-5">
-                <label for="description" class="mb-2 block text-sm font-medium">
-                    Description
+                <label for="detail" class="mb-2 block text-sm font-medium">
+                    Details
                 </label>
 
-                <input id="description" v-model="description" type="text" placeholder="Add a description"
+                <input id="detail" v-model="detail" type="text" placeholder="What was this for?"
                     class="w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 font-medium shadow-sm focus:border-green-600 focus:ring-2 focus:ring-green-200" />
             </div>
 
@@ -730,26 +768,73 @@ function saveSplit() {
                     <input v-model="always" type="checkbox" class="h-4 w-4" @change="toggleAlways" />
 
                     <span class="text-sm font-medium">
-                        Always use this category for this payee
+                        Always use this category for this description
                     </span>
                 </label>
 
                 <div v-if="always">
                     <label class="mb-2 block text-sm font-medium">
-                        When payee contains
+                        When description contains
                     </label>
 
                     <input v-model="matchText" type="text"
                         class="w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 font-medium shadow-sm focus:border-green-600 focus:ring-2 focus:ring-green-200" />
 
                     <p class="mt-1 text-sm text-muted-foreground">
-                        You can shorten this to the stable part of the payee,
+                        You can shorten this to the stable part of the description,
                         such as SAFEWAY or NETFLIX.
                     </p>
+                </div>
+                <!--  GST   -->
+                <div v-if="assignmentContext === 'ministry_au' &&
+                    transaction.currency === 'AUD'" class="mt-5 rounded-lg border border-gray-300 bg-gray-50 p-4">
+                    <label class="flex items-center gap-3">
+                        <input v-model="calculateGst" type="checkbox" class="h-4 w-4" />
+
+                        <span class="text-sm font-medium">
+                            Calculate GST
+                        </span>
+                    </label>
+
+                    <div v-if="calculateGst" class="mt-4">
+                        <label class="mb-2 block text-sm font-medium">
+                            GST Amount
+                        </label>
+
+                        <input v-model="gstAmount" type="number" step="0.01" min="0"
+                            class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 font-medium shadow-sm focus:border-green-600 focus:ring-2 focus:ring-green-200" />
+
+                        <p class="mt-1 text-sm text-muted-foreground">
+                            Calculated as 1/11 of the transaction.
+                            You can change it if needed.
+                        </p>
+                    </div>
                 </div>
 
                 <!--  BUTTON ROW   -->
                 <div class="flex items-center gap-3">
+
+
+                    <button type="button"
+                        class="rounded-md border border-gray-300 bg-gray-50 px-5 py-2.5 font-medium text-gray-700 shadow-sm hover:bg-gray-100"
+                        @click="splitting = !splitting">
+                        Split Transaction
+                    </button>
+
+                    <button type="button"
+                        class="rounded-md border border-gray-300 bg-gray-50 px-5 py-2.5 font-medium text-gray-700 shadow-sm hover:bg-gray-100"
+                        @click=" loadTransferMatches(transaction.id)">
+                        Transfer
+                    </button>
+
+                    <button type="button"
+                        class="rounded-md border border-gray-300 bg-gray-50 px-5 py-2.5 font-medium text-gray-700 shadow-sm hover:bg-gray-100"
+                        @click="doLater">
+                        Do Later
+                    </button>
+
+                </div>
+                <div>
                     <button type="button" :disabled="!categoryId || saving"
                         class="inline-flex items-center gap-2 rounded-md bg-[#477b67] px-5 py-2.5 font-medium text-white shadow-sm hover:bg-[#3d6b59] disabled:opacity-50"
                         @click="saveAndNext">
@@ -760,18 +845,6 @@ function saveSplit() {
                                 ? 'Saving...'
                                 : 'Save & Next'
                         }}
-                    </button>
-
-                    <button type="button"
-                        class="rounded-md border border-gray-300 bg-gray-50 px-5 py-2.5 font-medium text-gray-700 shadow-sm hover:bg-gray-100"
-                        @click="splitting = !splitting">
-                        Split Transaction
-                    </button>
-
-                    <button type="button"
-                        class="rounded-md border border-gray-300 bg-gray-50 px-5 py-2.5 font-medium text-gray-700 shadow-sm hover:bg-gray-100"
-                        @click="doLater">
-                        Do Later
                     </button>
                 </div>
 
@@ -821,7 +894,7 @@ function saveSplit() {
                         <input v-model="row.amount" type="number" step="0.01" min="0" placeholder="Amount"
                             class="rounded-md border border-gray-300 bg-gray-50 px-3 py-2 font-medium shadow-sm focus:border-green-600 focus:ring-2 focus:ring-green-200" />
 
-                        <input v-model="row.description" type="text" placeholder="Description"
+                        <input v-model="row.detail" type="text" placeholder="Description"
                             class="rounded-md border border-gray-300 bg-gray-50 px-3 py-2 font-medium shadow-sm focus:border-green-600 focus:ring-2 focus:ring-green-200" />
 
                         <button type="button" class="px-3 text-sm font-medium text-gray-600 hover:text-red-600"
@@ -866,6 +939,44 @@ function saveSplit() {
                         @click="saveSplit">
                         Save Split
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <!--  TRANSFER MATCHES   -->
+        <div v-if="showTransferMatches" class="mt-4 rounded-lg border border-gray-300 bg-white p-4">
+            <h3 class="mb-3 text-lg font-semibold">
+                Possible Transfer Matches
+            </h3>
+
+            <p v-if="transferMatches.length === 0" class="text-sm text-gray-600">
+                No matching transactions were found in other accounts
+                within the date range.
+            </p>
+
+            <div v-for="match in transferMatches" :key="match.id"
+                class="mb-2 flex items-center gap-3 rounded-md border p-3">
+                <input v-model="selectedTransferMatchId" type="radio" :value="match.id" />
+
+                <div class="flex-1">
+                    <div class="font-medium">
+                        {{ match.financial_account.account_name }}
+                    </div>
+
+                    <div class="text-sm text-gray-600">
+                        {{ match.transaction_date }}
+                        —
+                        {{ match.detail }}
+                    </div>
+                </div>
+
+                <div class="font-medium">
+                    {{
+                        new Intl.NumberFormat('en-AU', {
+                            style: 'currency',
+                            currency: match.currency,
+                        }).format(Number(match.amount))
+                    }}
                 </div>
             </div>
         </div>

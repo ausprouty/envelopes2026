@@ -8,11 +8,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class TransactionSplit extends Model
 {
     protected $fillable = [
-        'transaction_id',
-        'category_id',
         'amount',
+        'category_id',
         'description',
+        'expense_type',
         'financial_account_id',
+        'transaction_id',
+
     ];
 
     protected $casts = [
