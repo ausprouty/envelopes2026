@@ -258,6 +258,11 @@ Route::middleware([
                     '/balances/{balanceHistory}',
                     [FinancialAccountBalanceHistoryController::class, 'destroy']
                 )->name('balances.destroy');
+
+                Route::get(
+                    '/balances/{financialAccount}',
+                    [FinancialAccountBalanceHistoryController::class, 'show']
+                )->name('balances.show');
                 /*
                 |--------------------------------------------------------------------------
                 | Import profiles
@@ -389,4 +394,4 @@ Route::middleware([
             });
     });
 
-require __DIR__.'/settings.php';
+require __DIR__ . '/settings.php';

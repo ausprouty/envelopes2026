@@ -13,28 +13,38 @@ use Inertia\Response;
 
 class FinancialAccountBalanceHistoryController extends Controller
 {
-    public function create(Household $household): Response
-    {
+    public function create(
+        Request $request,
+        Household $household
+    ): Response {
         $accounts = $household->financialAccounts()
             ->where('is_active', true)
             ->orderBy('institution_name')
             ->orderBy('account_name')
             ->get([
-                'id',
                 'account_name',
-                'institution_name',
                 'account_type',
                 'category_type',
                 'currency',
+                'id',
+                'institution_name',
+
+
             ]);
 
+        $selectedAccountId = $request->integer('financial_account_id');
+
+        if (! $accounts->contains('id', $selectedAccountId)) {
+            $selectedAccountId = null;
+        }
+
         return Inertia::render('households/balances/Create', [
+            'accounts' => $accounts,
             'household' => [
                 'id' => $household->id,
                 'household_name' => $household->household_name,
             ],
-
-            'accounts' => $accounts,
+            'selectedAccountId' => $selectedAccountId,
         ]);
     }
 
@@ -54,6 +64,41 @@ class FinancialAccountBalanceHistoryController extends Controller
             ],
         ]);
     }
+
+  public function show(
+    Household $household,
+    FinancialAccount $financialAccount
+): Response {
+    abort_unless(
+        $financialAccount->household_id === $household->id,
+        404
+    );
+
+    $history = $financialAccount->balanceHistory()
+        ->where('balance_date', '>=', now()->subMonths(24)->startOfDay())
+        ->get([
+            'id',
+            'balance_date',
+            'ledger_balance',
+        ]);
+
+    return Inertia::render('households/balances/Show', [
+        'household' => [
+            'id' => $household->id,
+            'household_name' => $household->household_name,
+        ],
+
+        'account' => [
+            'id' => $financialAccount->id,
+            'account_name' => $financialAccount->account_name,
+            'institution_name' => $financialAccount->institution_name,
+            'currency' => $financialAccount->currency,
+            'account_type' => $financialAccount->account_type,
+        ],
+
+        'history' => $history,
+    ]);
+}
 
     public function store(
         Request $request,
@@ -106,10 +151,9 @@ class FinancialAccountBalanceHistoryController extends Controller
 
         ]);
 
-        return redirect()
-            ->route('households.balances.create', [
-                'household' => $household->id,
-            ])
-            ->with('success', 'Balance recorded.');
+        return back()->with(
+            'success',
+            "Balance recorded for {$account->account_name}."
+        );
     }
 }

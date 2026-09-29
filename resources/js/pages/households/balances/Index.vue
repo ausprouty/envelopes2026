@@ -47,11 +47,14 @@ function formatDate(date: string | null): string {
         return '';
     }
 
+    const dateOnly = date.substring(0, 10);
+    const parsed = new Date(`${dateOnly}T00:00:00`);
+
     return new Intl.DateTimeFormat('en-AU', {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
-    }).format(new Date(`${date}T00:00:00`));
+    }).format(parsed);
 }
 
 function formatAccountType(accountType: string): string {
@@ -162,7 +165,14 @@ function formatAccountType(accountType: string): string {
                                 Record
                             </Link>
 
-                            <span class="text-gray-400">
+                            <Link v-if="account.latest_balance_history" :href="route('households.balances.show', {
+                                household: household.id,
+                                financialAccount: account.id,
+                            })" class="text-blue-600 hover:text-blue-800">
+                                History
+                            </Link>
+
+                            <span v-else class="text-gray-400">
                                 History
                             </span>
                         </td>

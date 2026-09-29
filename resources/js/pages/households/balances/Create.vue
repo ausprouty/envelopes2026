@@ -36,6 +36,14 @@ function submit() {
         route('households.balances.store', {
             household: props.household.id,
         }),
+        {
+            preserveScroll: true,
+
+            onSuccess: () => {
+                form.financial_account_id = '';
+                form.ledger_balance = '';
+            },
+        },
     );
 }
 </script>
