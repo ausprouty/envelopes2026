@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { route } from 'ziggy-js';
+import { route } from '@/lib/route';
 
 
 const props = defineProps<{

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { route } from 'ziggy-js';
+import { route } from '@/lib/route';
 import { categoryColors } from '@/lib/categoryColors';
 
 type Household = {
@@ -217,7 +217,8 @@ const categoriesWithColors = computed(() => {
                                 </td>
 
                                 <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
-                                    <Link :href="route('households.categories.edit', { household: household.id, category: category.id })"
+                                    <Link
+                                        :href="route('households.categories.edit', { household: household.id, category: category.id })"
                                         class="font-medium text-gray-700 hover:text-gray-950 dark:text-gray-300 dark:hover:text-white">
                                         Edit
                                     </Link>
@@ -266,7 +267,8 @@ const categoriesWithColors = computed(() => {
                         </div>
 
                         <div class="mt-4 border-t border-gray-100 pt-3 text-right">
-                            <Link :href="route('households.categories.edit', { household: household.id, category: category.id })"
+                            <Link
+                                :href="route('households.categories.edit', { household: household.id, category: category.id })"
                                 class="text-sm font-medium text-[#477b67] hover:underline">
                                 Edit
                             </Link>

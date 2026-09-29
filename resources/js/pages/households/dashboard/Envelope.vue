@@ -6,7 +6,7 @@ import {
     CircleDollarSign,
     ReceiptText,
 } from '@lucide/vue';
-import { route } from 'ziggy-js';
+import { route } from '@/lib/route';
 
 interface Household {
     id: number;
@@ -67,7 +67,8 @@ const shortDate = (date: string) => {
     <div class="p-4 sm:p-6">
         <!-- Back navigation -->
         <div class="mb-5 flex items-center gap-2 text-sm font-medium text-[#477b67]">
-                    <Link :href="route('households.reports.category-balances', { household: household.id, context: envelope.context })"
+            <Link
+                :href="route('households.reports.category-balances', { household: household.id, context: envelope.context })"
                 class="inline-flex items-center gap-1 hover:underline">
                 <ArrowLeft class="h-4 w-4" />
                 Category Balances

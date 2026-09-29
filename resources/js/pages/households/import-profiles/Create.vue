@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { route } from 'ziggy-js';
+import { route } from '@/lib/route';
 
 const props = defineProps<{
     household: {
@@ -36,7 +36,7 @@ const isOfx = computed(
 
 function submit(): void {
     form.post(
-            route('households.import-profiles.store', { household: props.household.id })
+        route('households.import-profiles.store', { household: props.household.id })
     );
 }
 </script>

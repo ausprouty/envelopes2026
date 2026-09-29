@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { route } from 'ziggy-js';
+import { route } from '@/lib/route';
 
 const props = defineProps<{
     household: {
@@ -58,7 +58,7 @@ function displayDateFormat(format: string | null): string {
                 </p>
             </div>
 
-                <Link :href="route('households.import-profiles.create', { household: props.household.id })"
+            <Link :href="route('households.import-profiles.create', { household: props.household.id })"
                 class="rounded-md bg-[#477b67] px-4 py-2 text-sm font-medium text-white hover:opacity-90">
                 New Import Profile
             </Link>
@@ -89,7 +89,8 @@ function displayDateFormat(format: string | null): string {
                 <tbody>
                     <tr v-for="profile in profiles" :key="profile.id" class="border-b last:border-b-0">
                         <td class="px-4 py-3 font-medium">
-                            <Link :href="route('households.import-profiles.edit', { household: props.household.id, importProfile: profile.id }) "
+                            <Link
+                                :href="route('households.import-profiles.edit', { household: props.household.id, importProfile: profile.id })"
                                 class="text-[#477b67] hover:underline">
                                 {{ profile.name }}
                             </Link>
@@ -114,7 +115,7 @@ function displayDateFormat(format: string | null): string {
 
 
                         <td class="px-4 py-3">
-                             {{ displayDateFormat(profile.date_format)  ?? '—'}}
+                            {{ displayDateFormat(profile.date_format) ?? '—' }}
                         </td>
                     </tr>
 

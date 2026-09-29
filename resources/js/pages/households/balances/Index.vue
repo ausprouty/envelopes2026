@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { route } from 'ziggy-js';
+import { route } from '@/lib/route';
 
 interface BalanceHistory {
     balance_date: string;

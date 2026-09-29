@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { route } from 'ziggy-js';
+import { route } from '@/lib/route';
 
 defineProps<{
     household: {
@@ -47,7 +47,7 @@ defineProps<{
                 </Link>
 
                 <Link :href="route('households.reports.category-balances',
-                { household: props.household.id })"
+                    { household: props.household.id })"
                     class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-[#477b67] hover:shadow-md">
                     <div class="flex items-center justify-between gap-4">
                         <div>

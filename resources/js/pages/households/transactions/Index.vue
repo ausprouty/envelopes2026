@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import { Upload, Tag, DollarSign } from '@lucide/vue';
-import { route } from 'ziggy-js';
+import { route } from '@/lib/route';
 
 
 defineProps<{

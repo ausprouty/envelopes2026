@@ -3,7 +3,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ChevronDown, ChevronUp, Upload } from '@lucide/vue';
 import axios from 'axios';
 import { computed, ref, watch } from 'vue';
-import { route } from 'ziggy-js';
+import { route } from '@/lib/route';
 
 
 /*
@@ -1126,7 +1126,8 @@ async function importTransactions(): Promise<void> {
                 </div>
 
                 <div class="mt-3 flex flex-wrap gap-3">
-                    <Link :href="route('households.accounts.edit', { household: household.id, account: financialAccountId })"
+                    <Link
+                        :href="route('households.accounts.edit', { household: household.id, account: financialAccountId })"
                         class="inline-flex items-center rounded-md bg-[#477b67] px-3 py-2 text-sm font-medium text-white hover:opacity-90">
                         Assign Existing Profile
                     </Link>

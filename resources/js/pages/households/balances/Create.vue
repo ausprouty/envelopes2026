@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
-import { route } from 'ziggy-js';
+import { route } from '@/lib/route';
 
 interface Household {
     id: number;
@@ -16,15 +16,17 @@ interface FinancialAccount {
     currency: string;
 }
 
-const props = defineProps<{
-    household: Household;
-    accounts: FinancialAccount[];
-}>();
+        const props = defineProps<{
+            household: Household;
+            accounts: FinancialAccount[];
+            selectedAccountId: number | null;
+        }>();
 
 const today = new Date().toISOString().slice(0, 10);
 
+
 const form = useForm({
-    financial_account_id: '',
+    financial_account_id: props.selectedAccountId ?? '',
     balance_date: today,
     ledger_balance: '',
 });
@@ -39,6 +41,7 @@ function submit() {
 </script>
 
 <template>
+
     <Head title="Record Balance" />
 
     <div class="mx-auto max-w-3xl p-6">
@@ -52,19 +55,12 @@ function submit() {
                     Account
                 </label>
 
-                <select
-                    v-model="form.financial_account_id"
-                    class="w-full rounded border p-3"
-                >
+                <select v-model="form.financial_account_id" class="w-full rounded border p-3">
                     <option value="">
                         Select an account
                     </option>
 
-                    <option
-                        v-for="account in accounts"
-                        :key="account.id"
-                        :value="account.id"
-                    >
+                    <option v-for="account in accounts" :key="account.id" :value="account.id">
                         {{
                             account.institution_name
                                 ? `${account.institution_name} — ${account.account_name}`
@@ -73,10 +69,7 @@ function submit() {
                     </option>
                 </select>
 
-                <div
-                    v-if="form.errors.financial_account_id"
-                    class="mt-1 text-sm text-red-600"
-                >
+                <div v-if="form.errors.financial_account_id" class="mt-1 text-sm text-red-600">
                     {{ form.errors.financial_account_id }}
                 </div>
             </div>
@@ -86,16 +79,9 @@ function submit() {
                     Date
                 </label>
 
-                <input
-                    v-model="form.balance_date"
-                    type="date"
-                    class="w-full rounded border p-3"
-                />
+                <input v-model="form.balance_date" type="date" class="w-full rounded border p-3" />
 
-                <div
-                    v-if="form.errors.balance_date"
-                    class="mt-1 text-sm text-red-600"
-                >
+                <div v-if="form.errors.balance_date" class="mt-1 text-sm text-red-600">
                     {{ form.errors.balance_date }}
                 </div>
             </div>
@@ -105,26 +91,15 @@ function submit() {
                     Balance
                 </label>
 
-                <input
-                    v-model="form.ledger_balance"
-                    type="number"
-                    step="0.01"
-                    class="w-full rounded border p-3"
-                />
+                <input v-model="form.ledger_balance" type="number" step="0.01" class="w-full rounded border p-3" />
 
-                <div
-                    v-if="form.errors.ledger_balance"
-                    class="mt-1 text-sm text-red-600"
-                >
+                <div v-if="form.errors.ledger_balance" class="mt-1 text-sm text-red-600">
                     {{ form.errors.ledger_balance }}
                 </div>
             </div>
 
-            <button
-                type="submit"
-                :disabled="form.processing"
-                class="rounded bg-blue-600 px-5 py-3 text-white disabled:opacity-50"
-            >
+            <button type="submit" :disabled="form.processing"
+                class="rounded bg-blue-600 px-5 py-3 text-white disabled:opacity-50">
                 Record Balance
             </button>
         </form>

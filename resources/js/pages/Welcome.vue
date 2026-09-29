@@ -2,7 +2,7 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { route } from 'ziggy-js';
+import { route } from '@/lib/route';
 import { login } from '@/routes';
 
 
@@ -24,8 +24,8 @@ const dashboardUrl = computed(() => {
 
     return householdId
         ? route('households.dashboard', {
-              household: householdId,
-          })
+            household: householdId,
+        })
         : '#';
 });
 </script>

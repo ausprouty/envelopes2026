@@ -3,7 +3,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { Check, Tag } from '@lucide/vue';
 import axios from 'axios';
 import { computed, ref, watch } from 'vue';
-import { route } from 'ziggy-js';
+import { route } from '@/lib/route';
 import ExpenseTypeButtons from '@/components/ExpenseTypeButtons.vue';
 
 

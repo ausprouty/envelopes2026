@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { route } from 'ziggy-js';
+import { route } from '@/lib/route';
 
 interface Household {
     id: number;
@@ -56,7 +56,7 @@ const isOfx = computed(
 
 function submit(): void {
     form.put(
-            route('households.import-profiles.update', { household: props.household.id, importProfile: props.profile.id })
+        route('households.import-profiles.update', { household: props.household.id, importProfile: props.profile.id })
     );
 }
 </script>
@@ -67,7 +67,7 @@ function submit(): void {
 
     <div class="p-4 sm:p-6">
         <div class="mb-6">
-            <Link :href="route('households.import-profiles.index', { household: props.household.id })   "
+            <Link :href="route('households.import-profiles.index', { household: props.household.id })"
                 class="text-sm font-medium text-[#477b67] hover:underline">
                 ← Import Profiles
             </Link>
@@ -305,7 +305,7 @@ function submit(): void {
                     Save Changes
                 </button>
 
-                <Link :href="route('households.import-profiles.index', { household: props.household.id })   "
+                <Link :href="route('households.import-profiles.index', { household: props.household.id })"
                     class="text-sm text-muted-foreground hover:underline">
                     Cancel
                 </Link>

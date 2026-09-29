@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { route } from 'ziggy-js';
+import { route } from '@/lib/route';
 import { categoryIconOptions } from '@/lib/categoryIcons';
 import { categoryImages } from '@/lib/categoryImages';
 
@@ -80,7 +80,7 @@ const submit = () => {
 
     <div class="mx-auto max-w-3xl p-6">
         <div class="mb-6">
-            <Link :href="route('households.categories.index', { household: household.id })  "
+            <Link :href="route('households.categories.index', { household: household.id })"
                 class="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
                 ← Back to Categories
             </Link>

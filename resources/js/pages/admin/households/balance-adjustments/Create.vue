@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import { route } from 'ziggy-js';
+import { route } from '@/lib/route';
 
 type Category = {
     current_balance: number;
