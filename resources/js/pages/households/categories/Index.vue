@@ -10,15 +10,16 @@ type Household = {
 };
 
 type Category = {
-    id: number;
+    category_type: string;
     code: string | null;
+    context: string;
+    dashboard_image: string | null;
+    display_order: number;
+    id: number;
+    is_active: boolean;
     name: string;
     parent_category_id: number | null;
-    category_type: string;
-    context: string;
     tracks_balance: boolean;
-    is_active: boolean;
-    display_order: number;
 };
 
 const props = defineProps<{
@@ -115,6 +116,10 @@ const categoriesWithColors = computed(() => {
                             <tr>
                                 <th
                                     class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                    Image
+                                </th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                     Order
                                 </th>
 
@@ -165,6 +170,23 @@ const categoriesWithColors = computed(() => {
                                     category.colorIndex % categoryColors.length
                                 ].child
                                 ">
+                                <td class="px-4 py-3">
+                                    <div :class="[
+                                        'flex items-center gap-3 text-gray-900 dark:text-white',
+                                        category.category_type === 'heading'
+                                            ? 'text-base font-bold text-[#477b67] dark:text-[#8fc0aa]'
+                                            : 'text-sm font-medium',
+                                        category.parent_category_id
+                                            ? 'pl-6'
+                                            : '',
+                                    ]">
+                                        <img v-if="category.dashboard_image"
+                                            :src="`/images/categories/${category.dashboard_image}`" :alt="category.name"
+                                            class="h-12 w-12 shrink-0 rounded-full object-cover" />
+
+                                        <span>{{ category.name }}</span>
+                                    </div>
+                                </td>
                                 <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                                     {{ category.display_order }}
                                 </td>
