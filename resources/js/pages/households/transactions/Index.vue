@@ -97,7 +97,7 @@ function formatDate(date: string | null) {
                     Assign Transactions
                 </Link>
 
-                <Link :href="route('households.transactions.allocate', { household: household.id })"
+                <Link :href="route('households.income-allocations.create', { household: household.id })"
                     class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#477b67] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#3c6958]">
                     <DollarSign class="h-4 w-4" />Allocate Income
                 </Link>

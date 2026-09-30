@@ -20,10 +20,30 @@ class IncomeAllocationController extends Controller
         Request $request,
         Household $household
     ): Response {
+        $incomeQueue = Transaction::query()
+            ->where('household_id', $household->id)
+            ->whereHas('category', function ($query) {
+                $query->where('category_type', 'income');
+            })
+            ->whereDoesntHave('incomePoolEntry')
+            ->with('category')
+            ->orderBy('transaction_date')
+            ->orderBy('id')
+            ->get()
+            ->map(function (Transaction $transaction) {
+                return [
+                    'id' => $transaction->id,
+                    'transaction_date' => $transaction->transaction_date,
+                    'description' => $transaction->description,
+                    'details' => $transaction->details,
+                    'amount' => (float) $transaction->amount,
+                    'category' => $transaction->category->name,
+                ];
+            });
         $categories = Category::query()
             ->where('household_id', $household->id)
             ->where('is_active', true)
-            ->where('code', '!=', 'income_pool')
+            ->where('context', 'household')
             ->where(function ($query) {
                 $query
                     ->where('category_type', 'heading')
@@ -38,9 +58,9 @@ class IncomeAllocationController extends Controller
                 $default = $isHeading
                     ? null
                     : IncomeAllocationDefault::query()
-                        ->where('household_id', $household->id)
-                        ->where('category_id', $category->id)
-                        ->first();
+                    ->where('household_id', $household->id)
+                    ->where('category_id', $category->id)
+                    ->first();
 
                 return [
                     'id' => $category->id,
@@ -64,11 +84,13 @@ class IncomeAllocationController extends Controller
         return Inertia::render(
             'households/income-allocations/Create',
             [
-                'household' => $household,
-                'categories' => $categories,
                 'availableToAllocate' => $this->availableToAllocate(
                     $household
                 ),
+                'categories' => $categories,
+                'household' => $household,
+                'incomeQueue' => $incomeQueue,
+
             ]
         );
     }
@@ -119,7 +141,7 @@ class IncomeAllocationController extends Controller
      */
         $allocatedTotal = collect($validated['lines'])
             ->sum(
-                fn ($line) => (float) $line['amount']
+                fn($line) => (float) $line['amount']
             );
 
         if ($allocatedTotal <= 0) {
@@ -221,21 +243,24 @@ class IncomeAllocationController extends Controller
     private function availableToAllocate(
         Household $household
     ): float {
-        $incomePool = Category::query()
-            ->where('household_id', $household->id)
-            ->where('code', 'income_pool')
-            ->firstOrFail();
-
-        $incomeReceived = Transaction::query()
-            ->where('household_id', $household->id)
-            ->where('category_id', $incomePool->id)
-            ->sum('amount');
+        $incomeInPool = DB::table('income_pool_entries')
+            ->join(
+                'income_pool_batches',
+                'income_pool_batches.id',
+                '=',
+                'income_pool_entries.income_pool_batch_id'
+            )
+            ->where(
+                'income_pool_batches.household_id',
+                $household->id
+            )
+            ->sum('income_pool_entries.amount');
 
         $alreadyAllocated = IncomeAllocation::query()
             ->where('household_id', $household->id)
             ->sum('amount');
 
-        return (float) $incomeReceived
+        return (float) $incomeInPool
             - (float) $alreadyAllocated;
     }
 

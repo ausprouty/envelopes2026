@@ -100,18 +100,47 @@ class CategoryController extends Controller
         ?Category $category = null
     ): array {
         return $request->validate([
+            'category_type' => [
+                'required',
+                'in:income,expense,asset,transfer,reimbursement,heading',
+            ],
+
             'code' => ['nullable', 'string', 'max:20'],
-            'name' => ['required', 'string', 'max:150'],
-            'icon' => ['nullable', 'string', 'max:100'],
-            'needs_attention' => ['required', 'boolean'],
+
+            'context' => [
+                'required',
+                'in:household,ministry_au,ministry_us,other',
+            ],
+
             'dashboard_image' => ['nullable', 'string', 'max:255'],
+
+            'display_order' => ['required', 'integer'],
+
+            'icon' => ['nullable', 'string', 'max:100'],
+
+            'is_active' => ['required', 'boolean'],
+
+            'name' => [
+                'required',
+                'string',
+                'max:150',
+                Rule::unique('categories', 'name')
+                    ->where(
+                        fn($query) => $query
+                            ->where('household_id', $household->id)
+                            ->where('context', $request->input('context'))
+                    )
+                    ->ignore($category?->id),
+            ],
+
+            'needs_attention' => ['required', 'boolean'],
 
             'parent_category_id' => [
                 'nullable',
                 'integer',
                 Rule::exists('categories', 'id')
                     ->where(
-                        fn ($query) => $query
+                        fn($query) => $query
                             ->where('household_id', $household->id)
                     ),
                 Rule::notIn(
@@ -119,19 +148,7 @@ class CategoryController extends Controller
                 ),
             ],
 
-            'category_type' => [
-                'required',
-                'in:income,expense,asset,transfer,reimbursement,heading',
-            ],
-
-            'context' => [
-                'required',
-                'in:household,ministry_au,ministry_us,other',
-            ],
-
             'tracks_balance' => ['required', 'boolean'],
-            'is_active' => ['required', 'boolean'],
-            'display_order' => ['required', 'integer'],
         ]);
     }
 
@@ -144,7 +161,7 @@ class CategoryController extends Controller
             ->where('category_type', 'heading')
             ->when(
                 $category,
-                fn ($query) => $query->whereKeyNot($category->id)
+                fn($query) => $query->whereKeyNot($category->id)
             )
             ->orderBy('display_order')
             ->orderBy('name')

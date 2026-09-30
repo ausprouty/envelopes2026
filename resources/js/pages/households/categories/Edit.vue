@@ -154,7 +154,7 @@ const submit = () => {
                             <option value="asset">Asset</option>
                             <option value="transfer">Transfer</option>
                             <option value="reimbursement">
-                                Reimbursement
+                                Reimbursement Income
                             </option>
                             <option value="heading">Heading</option>
                         </select>

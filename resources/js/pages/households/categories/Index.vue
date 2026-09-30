@@ -32,7 +32,7 @@ const typeLabel = (type: string) => {
         expense: 'Expense',
         asset: 'Asset',
         transfer: 'Transfer',
-        reimbursement: 'Reimbursement',
+        reimbursement: 'Reimbursement Income',
         heading: 'Heading',
     };
 

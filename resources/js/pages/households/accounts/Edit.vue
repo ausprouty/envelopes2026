@@ -155,7 +155,7 @@ function submit() {
                             <option value="loan">Loan</option>
                             <option value="ministry">Ministry</option>
                             <option value="other">Other</option>
-                            <option value="reimbursement">Reimbursement</option>
+                            <option value="reimbursement">Reimbursement Income</option>
                             <option value="retirement">Retirement</option>
                             <option value="savings">Savings</option>
                             <option value="superannuation">Superannuation</option>

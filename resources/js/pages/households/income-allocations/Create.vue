@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { route } from '@/lib/route';
 import { categoryColors } from '@/lib/categoryColors';
+import { route } from '@/lib/route';
+
 
 type Household = {
     id: number;
@@ -314,6 +315,7 @@ const submit = () => {
 }
 
 .money-input {
+    appearance: textfield;
     -moz-appearance: textfield;
 }
 </style>

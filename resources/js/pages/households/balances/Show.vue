@@ -1,8 +1,5 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
-import { route } from '@/lib/route';
-
 import {
     CategoryScale,
     Chart as ChartJS,
@@ -14,8 +11,9 @@ import {
     Title,
     Tooltip,
 } from 'chart.js';
-
+import { computed } from 'vue';
 import { Line } from 'vue-chartjs';
+import { route } from '@/lib/route';
 
 ChartJS.register(
     CategoryScale,
